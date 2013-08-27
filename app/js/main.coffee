@@ -8,7 +8,7 @@ document.body.appendChild( stats.domElement )
 QUARTER_PI = Math.PI / 4
 
 SHIP_MASS = 10
-SHIP_SIZE = 50
+SHIP_SIZE = 25
 MAX_THRUST = 2000
 
 Vec =
@@ -92,6 +92,7 @@ class Ship
 
     ctx.fillStyle = "#CCC"
     ctx.fill()
+    ctx.lineWidth = 0.5
     ctx.stroke()
 
     ctx.restore()
