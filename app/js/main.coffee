@@ -7,9 +7,9 @@ document.body.appendChild( stats.domElement )
 
 QUARTER_PI = Math.PI / 4
 
-MAX_THRUST = 2000
 SHIP_MASS = 10
 SHIP_SIZE = 50
+MAX_THRUST = 2000
 
 Vec =
   add: ([x1, y1], [x2, y2]) ->
@@ -18,6 +18,8 @@ Vec =
     [x1 - x2, y1 - y2]
   mul: ([x, y], c) ->
     [x * c, y * c]
+  polarToVector: (theta, length) ->
+    [ cos(theta) * length, sin(theta) * length ]
 
 class Ship
   constructor: (x, y, @theta= HALF_PI * 3) ->
@@ -31,10 +33,8 @@ class Ship
       @theta -= PI/30
 
     if @thrust = controls.up
-      a = MAX_THRUST / SHIP_MASS
-      deltaX = a * cos(@theta) * dt
-      deltaY = a * sin(@theta) * dt
-      @velocity = Vec.add @velocity, [deltaX, deltaY]
+      acceleration = Vec.polarToVector(@theta, MAX_THRUST / SHIP_MASS)
+      @velocity = Vec.add @velocity, Vec.mul(acceleration, dt)
 
     @position = Vec.add @position, Vec.mul(@velocity, dt)
 
@@ -110,16 +110,9 @@ controls =
   left: false
   right: false
 
-ctx.update = ->
-  ship.update ctx.dt / 1000, controls
+drawWrapped = ([xEdge,yEdge], drawFn) ->
+  drawFn()
 
-ctx.draw = ->
-  ship.draw(ctx)
-  drawWrappedEdges ship.nearEdges(ctx), -> ship.draw(ctx)
-
-  stats.update()
-
-drawWrappedEdges = ([xEdge,yEdge], drawFn) ->
   if xEdge isnt 0
     ctx.translate xEdge * ctx.width, 0
     drawFn()
@@ -129,6 +122,13 @@ drawWrappedEdges = ([xEdge,yEdge], drawFn) ->
     ctx.translate 0, yEdge * ctx.height
     drawFn()
     ctx.translate 0, -yEdge * ctx.height
+
+ctx.update = ->
+  ship.update ctx.dt / 1000, controls
+
+ctx.draw = ->
+  drawWrapped ship.nearEdges(ctx), -> ship.draw(ctx)
+  stats.update()
 
 ctx.keyup = (e) ->
   switch e.keyCode
