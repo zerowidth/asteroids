@@ -22,9 +22,14 @@ Vec =
     [ cos(theta) * length, sin(theta) * length ]
 
 class Ship
+
+  THRUST_STEP: 0.2
+
   constructor: (x, y, @theta= HALF_PI * 3) ->
     @position = [x, y]
     @velocity = [0, 0]
+    @thrust = false
+    @thrustLevel = 0
 
   update: (dt, controls) =>
     if controls.right
@@ -64,11 +69,17 @@ class Ship
     ctx.translate @position...
     ctx.rotate @theta
 
-    if @thrust
+    if @thrust and @thrustLevel < 1
+      @thrustLevel += @THRUST_STEP
+    else if not @thrust and @thrustLevel > 0
+      @thrustLevel -= @THRUST_STEP * 2
+      @thrustLevel = 0 if @thrustLevel < 0
+
+    if @thrustLevel > 0
       ctx.beginPath()
       ctx.moveTo 0, s3/2
       ctx.lineTo 0, -s3/2
-      ctx.lineTo -SHIP_SIZE, 0
+      ctx.lineTo -SHIP_SIZE * @thrustLevel, 0
 
       ctx.fillStyle = "FB0"
       ctx.fill()
