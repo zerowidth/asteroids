@@ -13,5 +13,12 @@
  */
 
 module.exports = require(process.env['LINEMAN_MAIN']).config.extend('files', {
-  //Override file patterns here
+  coffee: {
+    app: [
+      "app/js/vector.coffee",
+      "app/js/utils.coffee",
+      "app/js/ship.coffee",
+      "app/js/main.coffee"
+    ]
+  }
 });
