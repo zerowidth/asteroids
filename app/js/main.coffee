@@ -1,6 +1,8 @@
 window.asteroids = ->
   window.stats = Utils.drawStats()
-  window.ctx = Sketch.create element: document.getElementById('asteroids')
+  window.ctx = Sketch.create
+    element: document.getElementById('asteroids')
+    retina: true
   window.ship = new Ship(ctx.width/2, ctx.height/2)
   controls = new KeyboardControls
 
