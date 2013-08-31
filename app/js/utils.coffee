@@ -42,6 +42,24 @@ Utils =
       drawFn()
       ctx.translate 0, -yEdge * ctx.height
 
+class Grid
+  constructor: (@size, @color) ->
+  draw: (ctx) =>
+    ctx.strokeStyle = @color
+
+    for x in [1..(ctx.width / @size)]
+      ctx.beginPath()
+      ctx.moveTo x * @size, 0
+      ctx.lineTo x * @size, ctx.height
+      ctx.stroke()
+
+    for y in [1..(ctx.height / @size)]
+      ctx.beginPath()
+      ctx.moveTo 0, y * @size
+      ctx.lineTo ctx.width, y * @size
+      ctx.stroke()
+
 
 window.KeyboardControls = KeyboardControls
 window.Utils = Utils
+window.Grid = Grid
