@@ -1,7 +1,23 @@
-class Controls
+class KeyboardControls
   thrust: false
   left: false
   right: false
+  keyup: (e) =>
+    switch e.keyCode
+      when 37 # left
+        @left = false
+      when 39 # right
+        @right = false
+      when 38 # up
+        @up = false
+  keydown: (e) =>
+    switch e.keyCode
+      when 37 # left
+        @left = true
+      when 39 # right
+        @right = true
+      when 38 # up
+        @up = true
 
 Utils =
   drawStats: () ->
@@ -27,5 +43,5 @@ Utils =
       ctx.translate 0, -yEdge * ctx.height
 
 
-window.Controls = Controls
+window.KeyboardControls = KeyboardControls
 window.Utils = Utils
