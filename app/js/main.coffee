@@ -37,8 +37,14 @@ window.intersections = ->
       for poly in polys
         poly.draw ctx
       stats.update()
+    mousedown: (e) ->
+      where = [@mouse.x, @mouse.y]
+      poly.hitTest where for poly in polys
+    mouseup: (e) ->
+      (poly.hit = false for poly in polys)
 
 class Polygon
+  hit: false
   draw: (ctx) =>
     points = @points()
     ctx.save()
@@ -50,7 +56,7 @@ class Polygon
     for point in points
       ctx.lineTo point...
 
-    ctx.globalAlpha = 0.3
+    ctx.globalAlpha = 0.3 unless @hit
     ctx.fillStyle = @color
     ctx.fill()
     ctx.globalAlpha = 1
@@ -58,6 +64,30 @@ class Polygon
     ctx.strokeStyle = @color
     ctx.stroke()
     ctx.restore()
+
+  hitTest: ( [mouseX,mouseY] ) =>
+    points = @points()
+
+    maxX = Utils.maxOnAxis points, 0
+    maxY = Utils.maxOnAxis points, 1
+    minX = Utils.minOnAxis points, 0
+    minY = Utils.minOnAxis points, 1
+
+    # check axis-aligned bounding box first:
+    if mouseX < minX or mouseY < minY or mouseX > maxX or mouseY > maxY
+      @hit = false
+      return false
+
+    # then do ray cast (poly/line intersection)
+    testLine = [[mouseX, mouseY], [maxX + 1, mouseY]]
+    count = 0
+    for segment in Utils.pairs points
+      count += 1 if Utils.linesIntersect testLine, segment
+
+    if count % 2 is 1 # odd number of line crossings is inside the polygon
+      @hit = true
+    else
+      @hit = false
 
 class Square extends Polygon
   constructor: (@pos, @size, @color) ->

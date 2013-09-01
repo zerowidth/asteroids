@@ -42,6 +42,35 @@ Utils =
       drawFn()
       ctx.translate 0, -yEdge * ctx.height
 
+  maxOnAxis: (points, axisIndex) ->
+    Math.max (p[axisIndex] for p in points)...
+
+  minOnAxis: (points, axisIndex) ->
+    Math.min (p[axisIndex] for p in points)...
+
+  pairs: (items) ->
+    _.zip items, items[1..].concat([items[0]])
+
+  # test from:
+  # http://compgeom.cs.uiuc.edu/~jeffe/teaching/373/notes/x05-convexhull.pdf
+  # http://compgeom.cs.uiuc.edu/~jeffe/teaching/373/notes/x06-sweepline.pdf
+  # a, b, c, d are points describing two line segments.
+  linesIntersect: ([a,b], [c,d]) ->
+    @counterClockwise(a, c, d) != @counterClockwise(b, c, d) &&
+      @counterClockwise(a, b, c) != @counterClockwise(a, b, d)
+
+  # Check if the vectors from a->b and a->c are counterclockwise, that is, the
+  # magnitude of their cross product is >= 0. A magnitude of 0 indicates the
+  # vectors are collinear. Since this is used for hit testing, this means a
+  # check on a polygon boundary is a hit.
+  counterClockwise: ( a, b, c ) ->
+    from = Vec.sub(b,a)
+    to = Vec.sub(c,a)
+    mag = @crossProductMagnitude( from, to ) > 0
+
+  crossProductMagnitude: ( [x1, y1], [x2, y2] ) -> x1 * y2 - y1 * x2
+
+
 class Grid
   constructor: (@size, @color) ->
   draw: (ctx) =>
