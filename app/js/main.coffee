@@ -57,10 +57,14 @@ window.intersections = ->
         dragTarget.target.pos = Vec.add where, dragTarget.offset
     keydown: (e) ->
       if e.keyCode is 32 # space
-        triangle = polys[2]
-        square = polys[1]
-        console.log triangle.intersects square
 
+        # explicit iteration to compare all polys
+        for i in [0..(polys.length-1)]
+          poly = polys[i]
+          for other in polys.slice(i+1)
+            if poly.intersects other
+              poly.hit = true
+              other.hit = true
 
 class Polygon
   hit: false
