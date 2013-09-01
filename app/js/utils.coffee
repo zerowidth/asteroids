@@ -42,6 +42,13 @@ Utils =
       drawFn()
       ctx.translate 0, -yEdge * ctx.height
 
+  axisAlignedBoundingBox: (points) ->
+    maxX = @maxOnAxis points, 0
+    maxY = @maxOnAxis points, 1
+    minX = @minOnAxis points, 0
+    minY = @minOnAxis points, 1
+    [minX, maxX, minY, maxY]
+
   maxOnAxis: (points, axisIndex) ->
     Math.max (p[axisIndex] for p in points)...
 
@@ -70,6 +77,13 @@ Utils =
 
   crossProductMagnitude: ( [x1, y1], [x2, y2] ) -> x1 * y2 - y1 * x2
 
+  # project each point on to the given axis, returns a min/max interval
+  projectionInterval: (points, axis) ->
+    values = (Vec.dotProduct point, axis for point in points)
+    [Math.min(values...), Math.max(values...)]
+
+  intervalsOverlap: ([aMin, aMax], [bMin, bMax]) ->
+    return aMin <= bMax and bMin <= aMax
 
 class Grid
   constructor: (@size, @color) ->

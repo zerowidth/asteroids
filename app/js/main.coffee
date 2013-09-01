@@ -25,11 +25,15 @@ window.intersections = ->
   window.polys = [
     new Square([200, 200], 100, "#800"),
     new Square([500, 200], 100, "#008"),
-    new Triangle([700, 200], [0,0], [100,0], [0,200], "#080")
-
+    new Triangle([700, 200], [0,0], [0,200], [100,0], "#080")
   ]
 
-  window.grid = new Grid 20, "#056"
+  window.grid = new Grid 100, "#056"
+
+  window.dragTarget = {
+    target: null
+    offset: [0,0]
+  }
 
   _.extend ctx,
     draw: ->
@@ -39,16 +43,32 @@ window.intersections = ->
       stats.update()
     mousedown: (e) ->
       where = [@mouse.x, @mouse.y]
-      poly.hitTest where for poly in polys
+      hit = _.find polys, (poly) -> poly.hitTest where
+      if hit
+        dragTarget.target = hit
+        dragTarget.offset = Vec.sub hit.pos, where
+      else
+        dragTarget.target = null
     mouseup: (e) ->
       (poly.hit = false for poly in polys)
+    mousemove: (e) ->
+      if @dragging and dragTarget.target
+        where = [@mouse.x, @mouse.y]
+        dragTarget.target.pos = Vec.add where, dragTarget.offset
+    keydown: (e) ->
+      if e.keyCode is 32 # space
+        triangle = polys[2]
+        square = polys[1]
+        console.log triangle.intersects square
+
 
 class Polygon
   hit: false
+  axisAlignedBoundingBox: =>
+
   draw: (ctx) =>
     points = @points()
     ctx.save()
-    ctx.lineWidth = 2
     ctx.beginPath()
 
     ctx.moveTo points[points.length - 1]...
@@ -65,13 +85,9 @@ class Polygon
     ctx.stroke()
     ctx.restore()
 
-  hitTest: ( [mouseX,mouseY] ) =>
+  hitTest: ( [mouseX,mouseY] ) ->
     points = @points()
-
-    maxX = Utils.maxOnAxis points, 0
-    maxY = Utils.maxOnAxis points, 1
-    minX = Utils.minOnAxis points, 0
-    minY = Utils.minOnAxis points, 1
+    [minX, maxX, minY, maxY] = Utils.axisAlignedBoundingBox points
 
     # check axis-aligned bounding box first:
     if mouseX < minX or mouseY < minY or mouseX > maxX or mouseY > maxY
@@ -88,6 +104,21 @@ class Polygon
       @hit = true
     else
       @hit = false
+    @hit
+
+  intersects: (other) ->
+    for axis in @normalAxes().concat other.normalAxes()
+      us = @projectionInterval axis
+      them = other.projectionInterval axis
+      return false unless Utils.intervalsOverlap us, them
+    return true
+
+  projectionInterval: (axis) ->
+    Utils.projectionInterval @points(), axis
+
+  normalAxes: ->
+    for pair in Utils.pairs @points()
+      Vec.vectorNormal Vec.sub pair[1], pair[0]
 
 class Square extends Polygon
   constructor: (@pos, @size, @color) ->
