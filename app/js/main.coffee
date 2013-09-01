@@ -23,7 +23,7 @@ window.intersections = ->
     retina: true
 
   window.polys = [
-    new Square([290, 190], 100, "#800"),
+    new Square([290, 190], 50, "#800"),
     new Square([500, 200], 100, "#008"),
     new Triangle([200, 200], [0,0], [0,200], [100,0], "#080")
   ]
@@ -109,6 +109,7 @@ class Polygon
 
     count % 2 is 1 # odd number of line crossings is inside the polygon
 
+  # Separating Axis Theorem, from http://www.codezealot.org/archives/55
   intersects: (other) ->
     minAxis = null
     minOverlap = 1000000 # big enough, right?
@@ -118,7 +119,6 @@ class Polygon
       them = other.projectionInterval axis
       overlap = Utils.intervalOverlap us, them
       return false unless overlap > 0
-      if them[0] < us[0] then multiplier = -1 else multiplier = 1
       if overlap < minOverlap
         minUs = us
         minThem = them
