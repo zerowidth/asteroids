@@ -82,8 +82,11 @@ Utils =
     values = (Vec.dotProduct point, axis for point in points)
     [Math.min(values...), Math.max(values...)]
 
-  intervalsOverlap: ([aMin, aMax], [bMin, bMax]) ->
-    return aMin <= bMax and bMin <= aMax
+  # if > 0, intervals overlap.
+  intervalOverlap: ([aMin, aMax], [bMin, bMax]) ->
+    start = if aMin < bMin then bMin else aMin
+    end   = if aMax > bMax then bMax else aMax
+    end - start
 
 class Grid
   constructor: (@size, @color) ->

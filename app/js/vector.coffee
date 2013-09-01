@@ -9,6 +9,8 @@ Vec =
     [x1 - x2, y1 - y2]
   mul: ([x, y], c) ->
     [x * c, y * c]
+  invert: (vec) ->
+    @mul vec, -1
   polarToVector: (theta, length) ->
     [ cos(theta) * length, sin(theta) * length ]
   normalizeAngle: (theta) ->

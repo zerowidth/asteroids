@@ -23,9 +23,9 @@ window.intersections = ->
     retina: true
 
   window.polys = [
-    new Square([200, 200], 100, "#800"),
+    new Square([290, 190], 100, "#800"),
     new Square([500, 200], 100, "#008"),
-    new Triangle([700, 200], [0,0], [0,200], [100,0], "#080")
+    new Triangle([200, 200], [0,0], [0,200], [100,0], "#080")
   ]
 
   window.grid = new Grid 100, "#056"
@@ -55,7 +55,13 @@ window.intersections = ->
       for i in [0..(polys.length-1)]
         poly = polys[i]
         for other in polys.slice(i+1)
-          if poly.intersects other
+          translate = poly.intersects other
+          if translate
+            who = poly
+            if poly is dragTarget.target
+              who = other
+              translate = Vec.invert translate
+            who.pos = Vec.add who.pos, translate
             poly.hit = true
             other.hit = true
     mousemove: (e) ->
@@ -104,11 +110,27 @@ class Polygon
     count % 2 is 1 # odd number of line crossings is inside the polygon
 
   intersects: (other) ->
+    minAxis = null
+    minOverlap = 1000000 # big enough, right?
+
     for axis in @normalAxes().concat other.normalAxes()
       us = @projectionInterval axis
       them = other.projectionInterval axis
-      return false unless Utils.intervalsOverlap us, them
-    return true
+      overlap = Utils.intervalOverlap us, them
+      return false unless overlap > 0
+      if them[0] < us[0] then multiplier = -1 else multiplier = 1
+      if overlap < minOverlap
+        minUs = us
+        minThem = them
+        minOverlap = overlap
+        minAxis = axis
+
+    # overlap is always positive. if we're to the left of the other polygon on
+    # the axis of overlap, then invert the direction.
+    multiplier = if minUs[0] < minThem[0] then -1 else 1
+
+    # minimum translation vector
+    return Vec.mul minAxis, minOverlap * multiplier
 
   projectionInterval: (axis) ->
     Utils.projectionInterval @points(), axis
@@ -120,7 +142,7 @@ class Polygon
 class Square extends Polygon
   constructor: (@pos, @size, @color) ->
   points: =>
-    for offset in [ [0, 0], [1, 0], [1, 1], [0, 1] ]
+    for offset in [ [0, 0], [0, 1], [1, 1], [1, 0] ]
       Vec.add @pos, Vec.mul(offset, @size)
 
 class Triangle extends Polygon
