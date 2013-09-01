@@ -51,20 +51,18 @@ window.intersections = ->
         dragTarget.target = null
     mouseup: (e) ->
       (poly.hit = false for poly in polys)
+      # explicit iteration to compare all polys
+      for i in [0..(polys.length-1)]
+        poly = polys[i]
+        for other in polys.slice(i+1)
+          if poly.intersects other
+            poly.hit = true
+            other.hit = true
     mousemove: (e) ->
       if @dragging and dragTarget.target
         where = [@mouse.x, @mouse.y]
         dragTarget.target.pos = Vec.add where, dragTarget.offset
-    keydown: (e) ->
-      if e.keyCode is 32 # space
 
-        # explicit iteration to compare all polys
-        for i in [0..(polys.length-1)]
-          poly = polys[i]
-          for other in polys.slice(i+1)
-            if poly.intersects other
-              poly.hit = true
-              other.hit = true
 
 class Polygon
   hit: false
@@ -95,7 +93,6 @@ class Polygon
 
     # check axis-aligned bounding box first:
     if mouseX < minX or mouseY < minY or mouseX > maxX or mouseY > maxY
-      @hit = false
       return false
 
     # then do ray cast (poly/line intersection)
@@ -104,11 +101,7 @@ class Polygon
     for segment in Utils.pairs points
       count += 1 if Utils.linesIntersect testLine, segment
 
-    if count % 2 is 1 # odd number of line crossings is inside the polygon
-      @hit = true
-    else
-      @hit = false
-    @hit
+    count % 2 is 1 # odd number of line crossings is inside the polygon
 
   intersects: (other) ->
     for axis in @normalAxes().concat other.normalAxes()
