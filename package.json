@@ -8,7 +8,7 @@
     "company": "ACME, Inc."
   },
   "dependencies": {
-    "lineman": "~0.12.1"
+    "lineman": "~0.14.0"
   },
   "engines": {
     "node": "~>0.10.5",
