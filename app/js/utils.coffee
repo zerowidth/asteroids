@@ -1,4 +1,4 @@
-class KeyboardControls
+window.KeyboardControls = class KeyboardControls
   thrust: false
   left: false
   right: false
@@ -19,7 +19,7 @@ class KeyboardControls
       when 38 # up
         @up = true
 
-Utils =
+window.Utils = Utils =
   drawStats: () ->
     stats = new Stats()
     stats.setMode(0) # 0: fps, 1: ms
@@ -88,7 +88,7 @@ Utils =
     end   = if aMax > bMax then bMax else aMax
     end - start
 
-class Grid
+window.Grid = class Grid
   constructor: (@size, @color) ->
   draw: (ctx) =>
     ctx.strokeStyle = @color
@@ -104,8 +104,3 @@ class Grid
       ctx.moveTo 0, y * @size
       ctx.lineTo ctx.width, y * @size
       ctx.stroke()
-
-
-window.KeyboardControls = KeyboardControls
-window.Utils = Utils
-window.Grid = Grid

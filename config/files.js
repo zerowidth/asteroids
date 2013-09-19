@@ -18,7 +18,7 @@ module.exports = require(process.env['LINEMAN_MAIN']).config.extend('files', {
       "app/js/vector.coffee",
       "app/js/utils.coffee",
       "app/js/ship.coffee",
-      "app/js/main.coffee"
+      "app/js/intersections.coffee",
     ]
   }
 });

@@ -1,20 +1,3 @@
-window.asteroids = ->
-  window.stats = Utils.drawStats()
-  window.ctx = Sketch.create
-    element: document.getElementById('asteroids')
-    retina: true
-  window.ship = new Ship(ctx.width/2, ctx.height/2)
-  controls = new KeyboardControls
-
-  _.extend ctx,
-    update: ->
-      ship.update ctx.dt / 1000, controls
-    draw: ->
-      Utils.drawWrapped ctx, ship.nearEdges(ctx), -> ship.draw(ctx)
-      stats.update()
-    keyup: controls.keyup
-    keydown: controls.keydown
-
 window.intersections = ->
 
   window.stats = Utils.drawStats()
@@ -49,26 +32,24 @@ window.intersections = ->
         dragTarget.offset = Vec.sub hit.pos, where
       else
         dragTarget.target = null
-    mouseup: (e) ->
-      (poly.hit = false for poly in polys)
-      # explicit iteration to compare all polys
-      for i in [0..(polys.length-1)]
-        poly = polys[i]
-        for other in polys.slice(i+1)
-          translate = poly.intersects other
-          if translate
-            who = poly
-            if poly is dragTarget.target
-              who = other
-              translate = Vec.invert translate
-            who.pos = Vec.add who.pos, translate
-            poly.hit = true
-            other.hit = true
     mousemove: (e) ->
       if @dragging and dragTarget.target
         where = [@mouse.x, @mouse.y]
         dragTarget.target.pos = Vec.add where, dragTarget.offset
 
+        (poly.hit = false for poly in polys)
+        for i in [0..(polys.length-1)]
+          poly = polys[i]
+          for other in polys.slice(i+1)
+            translate = poly.intersects other
+            if translate
+              who = poly
+              if poly is dragTarget.target
+                who = other
+                translate = Vec.invert translate
+              who.pos = Vec.add who.pos, translate
+              poly.hit = true
+              other.hit = true
 
 class Polygon
   hit: false
