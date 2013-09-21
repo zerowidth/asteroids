@@ -53,7 +53,6 @@ window.intersections = ->
 
 class Polygon
   hit: false
-  axisAlignedBoundingBox: =>
 
   draw: (ctx) =>
     points = @points()
