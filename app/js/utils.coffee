@@ -93,14 +93,25 @@ window.Grid = class Grid
   draw: (ctx) =>
     ctx.strokeStyle = @color
 
-    for x in [1..(ctx.width / @size)]
+    count = ctx.width/@size
+    offset = Math.floor(count/2) * @size
+    for n in [0..count]
+      x = n * @size - offset
       ctx.beginPath()
-      ctx.moveTo x * @size, 0
-      ctx.lineTo x * @size, ctx.height
+      ctx.moveTo x, -ctx.height/2
+      ctx.lineTo x, ctx.height/2
       ctx.stroke()
 
-    for y in [1..(ctx.height / @size)]
+    count = ctx.height/@size
+    offset = Math.floor(count/2) * @size
+    for n in [0..count]
+      y = n * @size - offset
       ctx.beginPath()
-      ctx.moveTo 0, y * @size
-      ctx.lineTo ctx.width, y * @size
+      ctx.moveTo -ctx.width/2, y
+      ctx.lineTo  ctx.width/2, y
       ctx.stroke()
+
+    ctx.beginPath()
+    ctx.arc 0, 0, 5, 0, Math.PI * 2
+    ctx.stroke()
+    ctx.fill()
