@@ -1,4 +1,3 @@
-
 Vec =
   HALF_PI: Math.PI / 2
   TWO_PI: Math.PI * 2
@@ -34,5 +33,21 @@ Vec =
 
   dotProduct: ([x1, y1], [x2, y2]) ->
     x1*x2 + y1*y2
+
+  # | a b c |   | x |   | ax + by + c |
+  # | e f g | * | y | = | ex + fy + g |
+  #             | 1 |
+  #
+  # translation is [dx, dy]
+  # orientation is [cos(theta), sin(theta)]
+  #
+  # using this rotation / translation matrix:
+  # | cos(theta) -sin(theta) dx |
+  # | sin(theta)  cos(theta) dy |
+  transform: (vec, translation, orientation) ->
+    [x, y]   = vec
+    [dx, dy] = translation
+    [r, i]   = orientation
+    [[r*x - i*y + dx], [i*x + r*y + dy]]
 
 window.Vec = Vec

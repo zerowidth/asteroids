@@ -4,6 +4,7 @@ window.KeyboardControls = class KeyboardControls
   left: false
   right: false
   keyup: (e) =>
+    @shift = e.shiftKey
     switch e.keyCode
       when 37 # left
         @left = false
@@ -13,7 +14,9 @@ window.KeyboardControls = class KeyboardControls
         @up = false
       when 40 # down
         @down = false
+
   keydown: (e) =>
+    @shift = e.shiftKey
     switch e.keyCode
       when 37 # left
         @left = true

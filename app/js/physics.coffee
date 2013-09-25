@@ -7,7 +7,7 @@ window.physics = ->
   controls = new KeyboardControls
 
   # dot = new Particle [100, ctx.height - 100]
-  rect = new Rectangle 200, 100, [100, 50], 0, "#F00"
+  window.rect = new Rectangle 200, 100, [100, 50], 0, "#F00"
   rect2 = new Rectangle 200, 100, [0, -100], 0, "#00F"
 
   _.extend ctx,
@@ -30,45 +30,59 @@ window.physics = ->
   ctx.translate ctx.width/2, -ctx.height/2 # center the origin
 
 class Rectangle
-  constructor: (sizeX, sizeY, position, orientationAngle, @color) ->
+  constructor: (sizeX, sizeY, position, angle, @color) ->
     @position = position
-    @points = [[ sizeX/2,  sizeY/2],
+    @orientation = Spinor.fromAngle angle
+    @offsets = [[ sizeX/2,  sizeY/2],
                [-sizeX/2,  sizeY/2],
                [-sizeX/2, -sizeY/2],
                [ sizeX/2, -sizeY/2]]
 
+  points: () ->
+    (Vec.transform offset, @position, @orientation for offset in @offsets)
+
   update: (dt, keyboard) ->
-    if keyboard.left
-      dx = -1
-    else if keyboard.right
-      dx = 1
+    dx = dy = rot = 0
+
+    if keyboard.shift
+      rot = 1 if keyboard.left
+      rot = -1 if keyboard.right
     else
-      dx = 0
+      dx = -1 if keyboard.left
+      dx = 1 if keyboard.right
 
-    if keyboard.up
-      dy = 1
-    else if keyboard.down
-      dy = -1
-    else dy = 0
+    dy = 1 if keyboard.up
+    dy = -1 if keyboard.down
 
-    @position = Vec.add @position, Vec.scale [dx, dy], 200*dt
+    if dx isnt 0 or dy isnt 0
+      @position = Vec.add @position, Vec.scale [dx, dy], 200*dt
+    if rot isnt 0
+      @orientation = Spinor.addAngle @orientation, Math.PI*dt*rot
 
   draw: (ctx) ->
+    points = @points()
     ctx.save()
+
     ctx.beginPath()
-
-    ctx.translate @position...
-
-    ctx.moveTo @points[@points.length - 1]...
-
-    for point in @points
+    ctx.moveTo points[0]...
+    for point in points[1..]
       ctx.lineTo point...
 
     ctx.globalAlpha = 0.5
     ctx.fillStyle = @color
     ctx.fill()
-    ctx.globalAlpha = 1
 
+    ctx.globalAlpha = 1
     ctx.strokeStyle = @color
     ctx.stroke()
+
     ctx.restore()
+
+window.Spinor =
+  fromAngle: (angle) -> [Math.cos(angle), Math.sin(angle)]
+  add: ([a,b],[c,d]) -> [a*c - b*d, a*d + c*b]
+  addAngle: (spinor, angle) -> @add spinor, @fromAngle(angle)
+  toAngle: (spinor) -> Math.acos spinor[0]
+  fromDeg: (deg) -> deg * 2 * Math.PI / 360
+  toDeg: (rad) -> rad * 360 / (2 * Math.PI)
+
