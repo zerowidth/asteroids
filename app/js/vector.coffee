@@ -7,6 +7,8 @@ Vec =
     [x1 + x2, y1 + y2]
   sub: ([x1, y1], [x2, y2]) ->
     [x1 - x2, y1 - y2]
+  scale: ([x, y], c) ->
+    [x * c, y * c]
   mul: ([x, y], c) ->
     [x * c, y * c]
   invert: (vec) ->

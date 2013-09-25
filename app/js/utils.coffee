@@ -1,5 +1,6 @@
 window.KeyboardControls = class KeyboardControls
-  thrust: false
+  up: false
+  down: false
   left: false
   right: false
   keyup: (e) =>
@@ -10,6 +11,8 @@ window.KeyboardControls = class KeyboardControls
         @right = false
       when 38 # up
         @up = false
+      when 40 # down
+        @down = false
   keydown: (e) =>
     switch e.keyCode
       when 37 # left
@@ -18,6 +21,8 @@ window.KeyboardControls = class KeyboardControls
         @right = true
       when 38 # up
         @up = true
+      when 40 # down
+        @down = true
 
 window.Utils = Utils =
   drawStats: () ->
