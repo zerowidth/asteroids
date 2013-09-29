@@ -32,7 +32,7 @@ window.physics = ->
 class Rectangle
   constructor: (sizeX, sizeY, position, angle, @color) ->
     @position = position
-    @orientation = Spinor.fromAngle angle
+    @orientation = Rotation.fromAngle angle
     @offsets = [[ sizeX/2,  sizeY/2],
                [-sizeX/2,  sizeY/2],
                [-sizeX/2, -sizeY/2],
@@ -57,7 +57,7 @@ class Rectangle
     if dx isnt 0 or dy isnt 0
       @position = Vec.add @position, Vec.scale [dx, dy], 200*dt
     if rot isnt 0
-      @orientation = Spinor.addAngle @orientation, Math.PI*dt*rot
+      @orientation = Rotation.addAngle @orientation, Math.PI*dt*rot
 
   draw: (ctx) ->
     points = @points()
@@ -78,11 +78,11 @@ class Rectangle
 
     ctx.restore()
 
-window.Spinor =
+window.Rotation =
   fromAngle: (angle) -> [Math.cos(angle), Math.sin(angle)]
   add: ([a,b],[c,d]) -> [a*c - b*d, a*d + c*b]
-  addAngle: (spinor, angle) -> @add spinor, @fromAngle(angle)
-  toAngle: (spinor) -> Math.acos spinor[0]
+  addAngle: (rotation, angle) -> @add rotation, @fromAngle(angle)
+  toAngle: (rotation) -> Math.acos rotation[0]
   fromDeg: (deg) -> deg * 2 * Math.PI / 360
   toDeg: (rad) -> rad * 360 / (2 * Math.PI)
 
