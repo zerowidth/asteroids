@@ -49,10 +49,6 @@ class Polygon
   debug: {}
   resetDebug: -> @debug = {}
   drawDebug: (ctx) ->
-    if edge = @debug.myBest
-      Utils.debugLine ctx, edge.from, edge.to, "#F66"
-    if edge = @debug.theirBest
-      Utils.debugLine ctx, edge.from, edge.to, "#66F"
     if ref = @debug.reference
       Utils.debugLine ctx, ref.from, ref.to, "#F66"
     if inc = @debug.incident
@@ -66,7 +62,6 @@ class Polygon
   # from http://www.codezealot.org/archives/394 &c
   contactPoints: (other) ->
     minAxis = @minimumSeparationAxis other
-    console.log "found minimum separation axis of #{minAxis}"
     return [] unless minAxis
 
     e1 = @bestEdge minAxis
@@ -85,16 +80,12 @@ class Polygon
     @debug.reference = reference
     @debug.incident = incident
 
-    console.log "reference: #{reference.deepest} #{reference.from} -> #{reference.to} (vec #{reference.vec})"
-    console.log "incident: #{incident.deepest} #{incident.from} -> #{incident.to} (vec #{incident.vec})"
-
     reference.normalize()
 
     offset1 = reference.dot reference.from
     # clip the incident edge by the first vertex of the reference edge
     first = @clip incident.from, incident.to, reference, offset1
     return [] if first.length < 2 # if we don't have 2 points left, then fail
-    console.log "first", first[0], first[1]
     @debug.first = first
 
     # clip what's left of the incident edge by second vertex of reference edge
@@ -105,7 +96,6 @@ class Polygon
     return [] if clipped.length < 2
     reference.invert() # put it back (FIXME: stop using objects here)
 
-    console.log "clipped", clipped[0], clipped[1]
     @debug.clipped = clipped
 
     # get the reference edge normal
@@ -121,18 +111,15 @@ class Polygon
     unless Vec.dotProduct(refNorm, clipped[1]) - maxDepth < 0
       trimmed.push clipped[1]
 
-    console.log "trimmed", trimmed...
     @debug.trimmed = trimmed
 
     trimmed
 
   # clip the line segment from v1 to v2 if they are beyond offset along normal
   clip: (v1, v2, normal, offset) ->
-    console.log "clipping", v1, "->", v2, "against", normal.vec, "with", offset
     points = []
     d1 = normal.dot(v1) - offset
     d2 = normal.dot(v2) - offset
-    console.log "d1", d1, "d2", d2
     points.push v1 if d1 >= 0
     points.push v2 if d2 >= 0
 
