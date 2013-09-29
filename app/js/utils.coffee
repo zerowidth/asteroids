@@ -96,6 +96,40 @@ window.Utils = Utils =
     end   = if aMax > bMax then bMax else aMax
     end - start
 
+  debugLine: (ctx, from, to, color, dotSize = 3) ->
+    ctx.save()
+
+    ctx.strokeStyle = color
+    ctx.fillStyle = color
+    ctx.lineWidth = 2
+
+    ctx.beginPath()
+    ctx.moveTo from...
+    ctx.lineTo to...
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.arc from[0], from[1], dotSize, 0, Math.PI * 2
+    ctx.fill()
+
+    ctx.beginPath()
+    ctx.arc to[0], to[1], dotSize, 0, Math.PI * 2
+    ctx.fill()
+
+    ctx.restore()
+
+  debugPoints: (ctx, color, points...) ->
+    ctx.save()
+
+    ctx.fillStyle = color
+
+    for point in points
+      ctx.beginPath()
+      ctx.arc point[0], point[1], 2, 0, Math.PI * 2
+      ctx.fill()
+
+    ctx.restore()
+
 window.Grid = class Grid
   constructor: (@size, @color) ->
   draw: (ctx) =>

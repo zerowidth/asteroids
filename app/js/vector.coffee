@@ -8,10 +8,8 @@ Vec =
     [x1 - x2, y1 - y2]
   scale: ([x, y], c) ->
     [x * c, y * c]
-  mul: ([x, y], c) ->
-    [x * c, y * c]
   invert: (vec) ->
-    @mul vec, -1
+    @scale vec, -1
   polarToVector: (theta, length) ->
     [ cos(theta) * length, sin(theta) * length ]
   normalizeAngle: (theta) ->
@@ -21,7 +19,7 @@ Vec =
       theta += @TWO_PI
     theta
 
-  vectorNormal: ([x,y]) ->
+  perpendicular: ([x,y]) ->
     @normalize [-y, x]
 
   normalize: ([x,y]) ->
@@ -48,6 +46,6 @@ Vec =
     [x, y]   = vec
     [dx, dy] = translation
     [r, i]   = orientation
-    [[r*x - i*y + dx], [i*x + r*y + dy]]
+    [r*x - i*y + dx, i*x + r*y + dy]
 
 window.Vec = Vec
