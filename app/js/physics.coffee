@@ -55,8 +55,9 @@ class Polygon
       Utils.debugLine ctx, inc.from, inc.to, "#66F"
     if clipped = @debug.clipped
       Utils.debugLine ctx, clipped[0], clipped[1], "#FF0"
-    if trimmed = @debug.trimmed
-      Utils.debugPoints ctx, "#000", trimmed...
+    if contacts = @debug.contacts
+      for contact in contacts
+        Utils.debugContact ctx, contact, "#0F0"
 
   # Calculate contact points against another polygon.
   # from http://www.codezealot.org/archives/394 &c
@@ -103,17 +104,18 @@ class Polygon
 
     # find the largest depth
     maxDepth = Vec.dotProduct refNorm, reference.deepest
-    trimmed = []
+    contacts = []
 
-    # make sure the final points are not past this maximum depth
-    unless Vec.dotProduct(refNorm, clipped[0]) - maxDepth < 0
-      trimmed.push clipped[0]
-    unless Vec.dotProduct(refNorm, clipped[1]) - maxDepth < 0
-      trimmed.push clipped[1]
+    # Calculate depth for each clipped point and return only those which are
+    # nonzero (that is, aren't on the other side of the reference edge)
+    for point in clipped
+      depth = Vec.dotProduct(refNorm, point) - maxDepth
+      if depth >= 0
+        contacts.push new Contact(point, minAxis, depth)
 
-    @debug.trimmed = trimmed
+    @debug.contacts = contacts
 
-    trimmed
+    contacts
 
   # clip the line segment from v1 to v2 if they are beyond offset along normal
   clip: (v1, v2, normal, offset) ->
@@ -249,6 +251,9 @@ class Rectangle extends Polygon
     ctx.stroke()
 
     ctx.restore()
+
+class Contact
+  constructor: (@position, @normal, @depth) ->
 
 window.Rotation =
   fromAngle: (angle) -> [Math.cos(angle), Math.sin(angle)]
