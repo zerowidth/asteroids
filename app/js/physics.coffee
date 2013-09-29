@@ -7,7 +7,7 @@ window.physics = ->
   controls = new KeyboardControls
 
   # dot = new Particle [100, ctx.height - 100]
-  window.rect = new Rectangle 120, 100, [100, 80], 0.3, "#F00"
+  window.rect = new Rectangle 200, 200, [100, 80], 0.3, "#F00"
   rect2 = new Rectangle 120, 100, [0, 0], 0, "#00F"
 
   _.extend ctx,
@@ -70,7 +70,7 @@ class Polygon
     # Now, clip the edges. The reference edge is most perpendicular to contact
     # axis, and will be used to clip the incident edge vertices to generate the
     # contact points.
-    if e1.dot(minAxis) <= e2.dot(minAxis)
+    if Math.abs(e1.dot(minAxis)) <= Math.abs(e2.dot(minAxis))
       reference = e1
       incident  = e2
     else
