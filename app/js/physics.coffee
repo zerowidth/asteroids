@@ -49,12 +49,16 @@ class Polygon
   debug: {}
   resetDebug: -> @debug = {}
   drawDebug: (ctx) ->
+    if edge = @debug.myBest
+      Utils.debugLine ctx, edge.from, edge.to, "#F66"
+    if edge = @debug.theirBest
+      Utils.debugLine ctx, edge.from, edge.to, "#66F"
     if ref = @debug.reference
-      Utils.debugLine ctx, ref.from, ref.to, "#0F0"
+      Utils.debugLine ctx, ref.from, ref.to, "#F66"
     if inc = @debug.incident
-      Utils.debugLine ctx, inc.from, inc.to, "#FF0"
+      Utils.debugLine ctx, inc.from, inc.to, "#66F"
     if clipped = @debug.clipped
-      Utils.debugLine ctx, clipped[0], clipped[1], "#0FF"
+      Utils.debugLine ctx, clipped[0], clipped[1], "#FF0"
     if trimmed = @debug.trimmed
       Utils.debugPoints ctx, "#000", trimmed...
 
@@ -65,8 +69,8 @@ class Polygon
     console.log "found minimum separation axis of #{minAxis}"
     return [] unless minAxis
 
-    e1 = @bestEdge minAxis
-    e2 = other.bestEdge Vec.invert minAxis # A->B always
+    @debug.myBest = e1 = @bestEdge minAxis
+    @debug.theirBest = e2 = other.bestEdge Vec.invert minAxis # A->B always
 
     # Now, clip the edges. Do a series of line/plane clips to get the contact
     # manifold. Identify the reference edge and incident edge. Reference is most
@@ -184,7 +188,7 @@ class Polygon
     minAxis    = null
     minOverlap = Infinity
 
-    for axis in @perpendicularAxes()
+    for axis in @perpendicularAxesFacing(other)
       us = @projectionInterval axis
       them = other.projectionInterval axis
       overlap = Utils.intervalOverlap us, them
@@ -193,7 +197,7 @@ class Polygon
         minOverlap = overlap
         minAxis = axis
 
-    for axis in other.perpendicularAxes()
+    for axis in other.perpendicularAxesFacing(this)
       us = @projectionInterval axis
       them = other.projectionInterval axis
       overlap = Utils.intervalOverlap us, them
@@ -210,6 +214,10 @@ class Polygon
   perpendicularAxes: ->
     for pair in Utils.pairs @points()
       Vec.perpendicular Vec.sub pair[1], pair[0]
+
+  perpendicularAxesFacing: (other) ->
+    dir = Vec.sub other.position, @position
+    (axis for axis in @perpendicularAxes() when Vec.dotProduct(axis, dir) > 0)
 
 class Rectangle extends Polygon
   constructor: (sizeX, sizeY, position, angle, @color) ->
