@@ -7,8 +7,8 @@ window.physics = ->
   controls = new KeyboardControls
 
   # dot = new Particle [100, ctx.height - 100]
-  window.rect = new Rectangle 200, 100, [120, 80], 0, "#F00"
-  rect2 = new Rectangle 200, 100, [0, 0], 0, "#00F"
+  window.rect = new Rectangle 120, 100, [110, 50], 0, "#F00"
+  rect2 = new Rectangle 120, 100, [0, 0], 0, "#00F"
 
   _.extend ctx,
     update: ->
@@ -36,7 +36,7 @@ window.physics = ->
   ctx.translate ctx.width/2, -ctx.height/2 # center the origin
 
 class Edge
-  constructor: (@vertex, @from, @to) ->
+  constructor: (@deepest, @from, @to) ->
     @vec = Vec.sub @to, @from
   dot: (other) ->
     Vec.dotProduct @vec, other
@@ -85,8 +85,8 @@ class Polygon
     @debug.reference = reference
     @debug.incident = incident
 
-    console.log "reference: #{reference.vertex} #{reference.from} -> #{reference.to} (vec #{reference.vec})"
-    console.log "incident: #{incident.vertex} #{incident.from} -> #{incident.to} (vec #{incident.vec})"
+    console.log "reference: #{reference.deepest} #{reference.from} -> #{reference.to} (vec #{reference.vec})"
+    console.log "incident: #{incident.deepest} #{incident.from} -> #{incident.to} (vec #{incident.vec})"
     console.log "flipped", flipped
 
     reference.normalize()
@@ -116,15 +116,14 @@ class Polygon
     refNorm = Vec.invert refNorm if flipped
 
     # get the largest depth
-    max = Vec.dotProduct refNorm, reference.vertex
+    max = Vec.dotProduct refNorm, reference.deepest
 
+    trimmed = []
     # make sure the final points are not past this maximum
-    if Vec.dotProduct(refNorm, clipped[0]) - max < 0
-      clipped[0] = null
-    if Vec.dotProduct(refNorm, clipped[1]) - max < 0
-      clipped[1] = null
-
-    trimmed = (entry for entry in clipped when entry)
+    unless Vec.dotProduct(refNorm, clipped[0]) - max < 0
+      trimmed.push clipped[0]
+    unless Vec.dotProduct(refNorm, clipped[1]) - max < 0
+      trimmed.push clipped[1]
 
     console.log "trimmed", trimmed[0], trimmed[1]
     @debug.trimmed = trimmed
@@ -152,30 +151,32 @@ class Polygon
 
     points
 
-  # Calculate the best edge (closest perpendicular edge given a separation axis)
+  # Calculate the best edge (deepest perpendicular edge given a separation axis)
   bestEdge: (minAxis) ->
     points = @points()
 
-    # Find farthest vertex in the polygon along separation axis
-    closestIndex = null
+    # Find deepest vertex in the polygon along separation axis
+    deepestIndex = null
     maxProjection = -Infinity
     for vertex, i in points
       projection = Vec.dotProduct minAxis, vertex
       if projection > maxProjection
         maxProjection = projection
-        closestIndex = i
+        deepestIndex = i
 
     # Find edge which is most perpendicular to separation axis
-    closest    = points[closestIndex]
-    prevVertex = points[ (closestIndex - 1 + points.length) % points.length ]
-    nextVertex = points[ (closestIndex + 1 + points.length) % points.length ]
+    deepest    = points[ deepestIndex ]
+    prevVertex = points[ (deepestIndex - 1 + points.length) % points.length ]
+    nextVertex = points[ (deepestIndex + 1 + points.length) % points.length ]
 
-    left = Vec.sub closest, prevVertex
-    right = Vec.sub closest, nextVertex
+    # vectors pointing at the deepest vertex
+    left  = Vec.sub deepest, prevVertex
+    right = Vec.sub deepest, nextVertex
+
     if Vec.dotProduct(right, minAxis) <= Vec.dotProduct(left, minAxis)
-      new Edge closest, closest, nextVertex # right edge is better
+      new Edge deepest, deepest, nextVertex # right edge is better
     else
-      new Edge closest, prevVertex, closest # left edge is better
+      new Edge deepest, prevVertex, deepest # left edge is better
 
   # Use Separating Axis Theorem to find minimum separation axis
   # from http://www.codezealot.org/archives/55 &c.
