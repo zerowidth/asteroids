@@ -7,7 +7,7 @@ window.physics = ->
   controls = new KeyboardControls
 
   # dot = new Particle [100, ctx.height - 100]
-  window.rect = new Rectangle 120, 100, [110, 50], 0, "#F00"
+  window.rect = new Rectangle 120, 100, [100, 80], 0.3, "#F00"
   rect2 = new Rectangle 120, 100, [0, 0], 0, "#00F"
 
   _.extend ctx,
@@ -69,29 +69,24 @@ class Polygon
     console.log "found minimum separation axis of #{minAxis}"
     return [] unless minAxis
 
-    @debug.myBest = e1 = @bestEdge minAxis
-    @debug.theirBest = e2 = other.bestEdge Vec.invert minAxis # A->B always
+    e1 = @bestEdge minAxis
+    e2 = other.bestEdge Vec.invert minAxis # A->B always
 
-    # Now, clip the edges. Do a series of line/plane clips to get the contact
-    # manifold. Identify the reference edge and incident edge. Reference is most
-    # perpendicular to contact axis, and will be used to clip the incident edge
-    # vertices to generate the manifold.
-
+    # Now, clip the edges. The reference edge is most perpendicular to contact
+    # axis, and will be used to clip the incident edge vertices to generate the
+    # contact points.
     if e1.dot(minAxis) <= e2.dot(minAxis)
       reference = e1
       incident  = e2
-      flipped   = false
     else
       reference = e2
       incident  = e1
-      flipped   = true
 
     @debug.reference = reference
     @debug.incident = incident
 
     console.log "reference: #{reference.deepest} #{reference.from} -> #{reference.to} (vec #{reference.vec})"
     console.log "incident: #{incident.deepest} #{incident.from} -> #{incident.to} (vec #{incident.vec})"
-    console.log "flipped", flipped
 
     reference.normalize()
 
@@ -116,31 +111,28 @@ class Polygon
     # get the reference edge normal
     refNorm = Vec.perpendicular reference.vec
 
-    # if incident/reference were flipped, then flip the normal to clip properly
-    refNorm = Vec.invert refNorm if flipped
-
-    # get the largest depth
-    max = Vec.dotProduct refNorm, reference.deepest
-
+    # find the largest depth
+    maxDepth = Vec.dotProduct refNorm, reference.deepest
     trimmed = []
-    # make sure the final points are not past this maximum
-    unless Vec.dotProduct(refNorm, clipped[0]) - max < 0
+
+    # make sure the final points are not past this maximum depth
+    unless Vec.dotProduct(refNorm, clipped[0]) - maxDepth < 0
       trimmed.push clipped[0]
-    unless Vec.dotProduct(refNorm, clipped[1]) - max < 0
+    unless Vec.dotProduct(refNorm, clipped[1]) - maxDepth < 0
       trimmed.push clipped[1]
 
-    console.log "trimmed", trimmed[0], trimmed[1]
+    console.log "trimmed", trimmed...
     @debug.trimmed = trimmed
 
     trimmed
 
   # clip the line segment from v1 to v2 if they are beyond offset along normal
   clip: (v1, v2, normal, offset) ->
-    console.log "clipping #{v1} -> #{v2} against #{normal.vec} with #{offset}"
+    console.log "clipping", v1, "->", v2, "against", normal.vec, "with", offset
     points = []
     d1 = normal.dot(v1) - offset
     d2 = normal.dot(v2) - offset
-    console.log "d1 #{d1}, d2 #{d2}"
+    console.log "d1", d1, "d2", d2
     points.push v1 if d1 >= 0
     points.push v2 if d2 >= 0
 
