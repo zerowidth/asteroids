@@ -125,8 +125,24 @@ window.Utils = Utils =
 
     for point in points
       ctx.beginPath()
-      ctx.arc point[0], point[1], 2, 0, Math.PI * 2
+      ctx.arc point[0], point[1], 4, 0, Math.PI * 2
       ctx.fill()
+
+    ctx.restore()
+
+  debugContact: (ctx, contact, color="#0F0") ->
+    @debugPoints ctx, color, contact.position
+
+    ctx.save()
+
+    ctx.strokeStyle = color
+    ctx.lineWidth = 1
+
+    ctx.beginPath()
+    ctx.moveTo contact.position...
+    to = Vec.add contact.position, Vec.scale contact.normal, contact.depth
+    ctx.lineTo to...
+    ctx.stroke()
 
     ctx.restore()
 

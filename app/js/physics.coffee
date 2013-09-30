@@ -13,7 +13,7 @@ window.physics = ->
   _.extend ctx,
     update: ->
       rect.reset()
-      rect.update ctx.dt / 1000, controls
+      rect.integrate ctx.dt / 1000, controls
     draw: ->
       grid.draw ctx
       rect.draw ctx
@@ -46,15 +46,62 @@ class Edge
     @vec = Vec.invert @vec
 
 class Polygon
+  position: [0, 0]
+  rotation: [1, 0] # Rotation.fromAngle(0)
+
+  vertices: -> []
+
+  color: "#CCC"
   debug: {}
+
+  reset: -> # reset caches, forces, etc.
+
+  integrate: (dt, keyboard) ->
+    dx = dy = rot = 0
+
+    if keyboard.shift
+      rot = 1 if keyboard.left
+      rot = -1 if keyboard.right
+    else
+      dx = -1 if keyboard.left
+      dx = 1 if keyboard.right
+
+    dy = 1 if keyboard.up
+    dy = -1 if keyboard.down
+
+    if dx isnt 0 or dy isnt 0
+      @position = Vec.add @position, Vec.scale [dx, dy], 200*dt
+    if rot isnt 0
+      @orientation = Rotation.addAngle @orientation, Math.PI*dt*rot
+
+  draw: (ctx) ->
+    vertices = @vertices()
+    ctx.save()
+
+    ctx.beginPath()
+    ctx.moveTo vertices[0]...
+    for point in vertices[1..]
+      ctx.lineTo point...
+    ctx.lineTo vertices[0]...
+
+    ctx.globalAlpha = 0.5
+    ctx.fillStyle = @color
+    ctx.fill()
+
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = @color
+    ctx.stroke()
+
+    ctx.restore()
+
   resetDebug: -> @debug = {}
   drawDebug: (ctx) ->
-    if ref = @debug.reference
-      Utils.debugLine ctx, ref.from, ref.to, "#F66"
-    if inc = @debug.incident
-      Utils.debugLine ctx, inc.from, inc.to, "#66F"
-    if clipped = @debug.clipped
-      Utils.debugLine ctx, clipped[0], clipped[1], "#FF0"
+    # if ref = @debug.reference
+    #   Utils.debugLine ctx, ref.from, ref.to, "#F66"
+    # if inc = @debug.incident
+    #   Utils.debugLine ctx, inc.from, inc.to, "#66F"
+    # if clipped = @debug.clipped
+    #   Utils.debugLine ctx, clipped[0], clipped[1], "#FF0"
     if contacts = @debug.contacts
       for contact in contacts
         Utils.debugContact ctx, contact, "#0F0"
@@ -138,21 +185,21 @@ class Polygon
 
   # Calculate the best edge (deepest perpendicular edge given a separation axis)
   bestEdge: (minAxis) ->
-    points = @points()
+    vertices = @vertices()
 
     # Find deepest vertex in the polygon along separation axis
     deepestIndex = null
     maxProjection = -Infinity
-    for vertex, i in points
+    for vertex, i in vertices
       projection = Vec.dotProduct minAxis, vertex
       if projection > maxProjection
         maxProjection = projection
         deepestIndex = i
 
     # Find edge which is most perpendicular to separation axis
-    deepest    = points[ deepestIndex ]
-    prevVertex = points[ (deepestIndex - 1 + points.length) % points.length ]
-    nextVertex = points[ (deepestIndex + 1 + points.length) % points.length ]
+    deepest    = vertices[ deepestIndex ]
+    prevVertex = vertices[ (deepestIndex - 1 + vertices.length) % vertices.length ]
+    nextVertex = vertices[ (deepestIndex + 1 + vertices.length) % vertices.length ]
 
     # vectors pointing at the deepest vertex
     left  = Vec.sub deepest, prevVertex
@@ -190,10 +237,10 @@ class Polygon
     minAxis
 
   projectionInterval: (axis) ->
-    Utils.projectionInterval @points(), axis
+    Utils.projectionInterval @vertices(), axis
 
   perpendicularAxes: ->
-    for pair in Utils.pairs @points()
+    for pair in Utils.pairs @vertices()
       Vec.perpendicular Vec.sub pair[1], pair[0]
 
   perpendicularAxesFacing: (other) ->
@@ -210,48 +257,10 @@ class Rectangle extends Polygon
                [ sizeX/2, -sizeY/2]]
   reset: ->
     # TODO only reset if position/velocity/orientation have changed
-    @cachedPoints = null
+    @cachedVertices = null
 
-  points: () ->
-    @cachedPoints ?= (Vec.transform offset, @position, @orientation for offset in @offsets)
-
-  update: (dt, keyboard) ->
-    dx = dy = rot = 0
-
-    if keyboard.shift
-      rot = 1 if keyboard.left
-      rot = -1 if keyboard.right
-    else
-      dx = -1 if keyboard.left
-      dx = 1 if keyboard.right
-
-    dy = 1 if keyboard.up
-    dy = -1 if keyboard.down
-
-    if dx isnt 0 or dy isnt 0
-      @position = Vec.add @position, Vec.scale [dx, dy], 200*dt
-    if rot isnt 0
-      @orientation = Rotation.addAngle @orientation, Math.PI*dt*rot
-
-  draw: (ctx) ->
-    points = @points()
-    ctx.save()
-
-    ctx.beginPath()
-    ctx.moveTo points[0]...
-    for point in points[1..]
-      ctx.lineTo point...
-    ctx.lineTo points[0]...
-
-    ctx.globalAlpha = 0.5
-    ctx.fillStyle = @color
-    ctx.fill()
-
-    ctx.globalAlpha = 1
-    ctx.strokeStyle = @color
-    ctx.stroke()
-
-    ctx.restore()
+  vertices: () ->
+    @cachedVertices ?= (Vec.transform offset, @position, @orientation for offset in @offsets)
 
 class Contact
   constructor: (@position, @normal, @depth) ->
@@ -263,4 +272,3 @@ window.Rotation =
   toAngle: (rotation) -> Math.acos rotation[0]
   fromDeg: (deg) -> deg * 2 * Math.PI / 360
   toDeg: (rad) -> rad * 360 / (2 * Math.PI)
-
