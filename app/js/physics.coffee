@@ -160,6 +160,14 @@ class Polygon
       if depth >= 0
         contacts.push new Contact(point, minAxis, depth)
 
+    # For simplicity sake, only return the "deepest" contact point. Eventually
+    # the physics engine will need to track more than one contact and update
+    # them as each contact is resolved.
+    if contacts[1] && contacts[1].depth > contacts[0].depth
+      contacts = [contacts[1]]
+    else
+      contacts = [contacts[0]]
+
     @debug.contacts = contacts
 
     contacts
