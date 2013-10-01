@@ -6,26 +6,36 @@ window.physics = ->
   window.grid = new Grid 100, "#056"
   controls = new KeyboardControls
 
-  # dot = new Particle [100, ctx.height - 100]
-  window.rect = new Rectangle 200, 200, [100, 80], 0.3, "#F00"
-  rect2 = new Rectangle 120, 100, [0, 0], 0, "#00F"
+  window.rect = new Rectangle 100, 100, [0, 200], 0.3, "#F00"
+  rect.inverseMass = 1/10
+  floor = new Rectangle 800, 10, [0, -5], 0, "#888"
+  paused = false
 
   _.extend ctx,
     update: ->
       rect.reset()
-      rect.integrate ctx.dt / 1000, controls
+      rect.resetDebug()
+      contacts = rect.contactPoints(floor)
+
+      unless paused
+        rect.integrate ctx.dt / 1000, controls
+
+      if contacts.length > 0
+        unless paused
+          for c, i in contacts
+            console.log "contact #{i}", c.normal, c.depth
+        paused = true
     draw: ->
       grid.draw ctx
       rect.draw ctx
-      rect2.draw ctx
+      floor.draw ctx
       rect.drawDebug ctx
       stats.update()
     clear: ->
       ctx.clearRect -ctx.width/2, -ctx.height/2, ctx.width, ctx.height
     keyup: (e) ->
       if e.keyCode is 32 # space
-        rect.resetDebug()
-        rect.contactPoints(rect2)
+        paused = false
       controls.keyup e
     keydown: controls.keydown
 
@@ -49,6 +59,13 @@ class Polygon
   position: [0, 0]
   rotation: [1, 0] # Rotation.fromAngle(0)
 
+  velocity: [0, 0]
+  angularVelocity: 0
+  inverseMass: 0 # required value
+  inverseMoment: 0 # calculated value
+
+  damping: 0.999 # minimal
+
   vertices: -> []
 
   color: "#CCC"
@@ -56,23 +73,15 @@ class Polygon
 
   reset: -> # reset caches, forces, etc.
 
-  integrate: (dt, keyboard) ->
-    dx = dy = rot = 0
+  integrate: (dt, controls) ->
+    return if @inverseMass <= 0 or dt <= 0
 
-    if keyboard.shift
-      rot = 1 if keyboard.left
-      rot = -1 if keyboard.right
-    else
-      dx = -1 if keyboard.left
-      dx = 1 if keyboard.right
+    @position = Vec.add @position, Vec.scale @velocity, dt
+    acceleration = [0, -15]
+    @velocity = Vec.add @velocity, Vec.scale acceleration, dt
+    @velocity = Vec.scale @velocity, Math.pow(@damping, dt)
 
-    dy = 1 if keyboard.up
-    dy = -1 if keyboard.down
 
-    if dx isnt 0 or dy isnt 0
-      @position = Vec.add @position, Vec.scale [dx, dy], 200*dt
-    if rot isnt 0
-      @orientation = Rotation.addAngle @orientation, Math.PI*dt*rot
 
   draw: (ctx) ->
     vertices = @vertices()
