@@ -6,25 +6,30 @@ window.physics = ->
   window.grid = new Grid 100, "#056"
   controls = new KeyboardControls
 
-  window.rect = new Rectangle 100, 100, [0, 200], 0.3, "#F00"
+  window.rect = new Rectangle 100, 100, [0, 80], 0.1, "#F00"
   rect.inverseMass = 1/10
   floor = new Rectangle 800, 10, [0, -5], 0, "#888"
-  paused = false
 
   _.extend ctx,
     update: ->
       rect.reset()
       rect.resetDebug()
 
-      unless paused
-        rect.integrate ctx.dt / 1000, controls
+      rect.integrate ctx.dt / 1000, controls
       contacts = rect.contactPoints(floor)
 
       if contacts.length > 0
-        unless paused
-          for c, i in contacts
-            console.log "contact #{i}", c.normal, c.depth
-        paused = true
+        for c, i in contacts
+          console.log "contact #{i}", c.normal, c.depth, c.from.velocity
+
+        for n in [1..contacts.length*2]
+          worst = null
+          for contact in contacts
+            if not worst or contact.separatingVelocity() < worst.separatingVelocity()
+              worst = contact
+          break if worst.separatingVelocity() >= 0
+          worst.resolve()
+
     draw: ->
       grid.draw ctx
       rect.draw ctx
@@ -34,8 +39,6 @@ window.physics = ->
     clear: ->
       ctx.clearRect -ctx.width/2, -ctx.height/2, ctx.width, ctx.height
     keyup: (e) ->
-      if e.keyCode is 32 # space
-        paused = false
       controls.keyup e
     keydown: controls.keydown
 
@@ -168,7 +171,7 @@ class Polygon
     for point in clipped
       depth = Vec.dotProduct(refNorm, point) - maxDepth
       if depth >= 0
-        contacts.push new Contact(point, contactNormal, depth)
+        contacts.push new Contact(this, other, point, contactNormal, depth, 0.8)
 
     # For simplicity sake, only return the "deepest" contact point. Eventually
     # the physics engine will need to track more than one contact and update
@@ -281,7 +284,58 @@ class Rectangle extends Polygon
     @cachedVertices ?= (Vec.transform offset, @position, @orientation for offset in @offsets)
 
 class Contact
-  constructor: (@position, @normal, @depth) ->
+  restitution: 1 # bounce!
+
+  constructor: (@from, @to, @position, @normal, @depth, restitution=null) ->
+    @restitution = restitution if restitution?
+
+  # Calculated fresh each time, as the position and velocity may have changed
+  # during a previous contact resolution iteration
+  separatingVelocity: ->
+    relativeV = @from.velocity
+    if @to
+      relativeV = Vec.sub relativeV, @to.velocity
+    Vec.dotProduct relativeV, @normal
+
+  resolve: ->
+    @resolveVelocity()
+    @resolveInterpenetration()
+
+  resolveVelocity: ->
+    sepV = @separatingVelocity()
+    return if sepV >= 0 # separating or stationary
+
+    newSepV = -sepV * @restitution
+    deltaV = newSepV - sepV
+
+    # apply change in velocity in proportion to inverse mass
+    totalInvMass = @totalInvMass()
+    return if totalInvMass <= 0 # nobody's goin' nowhere
+
+    impulse = deltaV / totalInvMass
+    impulsePerMass = Vec.scale @normal, impulse
+
+    # apply impulses
+    @from.velocity = Vec.add @from.velocity, Vec.scale impulsePerMass, @from.inverseMass
+    if @to
+      @to.velocity = Vec.add @to.velocity, Vec.scale impulsePerMass, @to.inverseMass
+
+  resolveInterpenetration: ->
+    return if @depth <= 0
+
+    totalInvMass = @totalInvMass()
+    return if totalInvMass <= 0 # nobody's goin' nowhere
+
+    movePerIMass = Vec.scale @normal, (@depth / totalInvMass)
+
+    @from.position = Vec.add @from.position, Vec.scale movePerIMass, @from.inverseMass
+    if @to
+      @to.position = Vec.add @to.position, Vec.scale movePerIMass, -@to.inverseMass
+
+  totalInvMass: ->
+    total = @from.inverseMass
+    total += @to.inverseMass if @to
+    total
 
 window.Rotation =
   fromAngle: (angle) -> [Math.cos(angle), Math.sin(angle)]
