@@ -15,10 +15,10 @@ window.physics = ->
     update: ->
       rect.reset()
       rect.resetDebug()
-      contacts = rect.contactPoints(floor)
 
       unless paused
         rect.integrate ctx.dt / 1000, controls
+      contacts = rect.contactPoints(floor)
 
       if contacts.length > 0
         unless paused
@@ -64,6 +64,7 @@ class Polygon
   inverseMass: 0 # required value
   inverseMoment: 0 # calculated value
 
+  acceleration: [0, -100] # gravity
   damping: 0.999 # minimal
 
   vertices: -> []
@@ -77,11 +78,10 @@ class Polygon
     return if @inverseMass <= 0 or dt <= 0
 
     @position = Vec.add @position, Vec.scale @velocity, dt
-    acceleration = [0, -15]
-    @velocity = Vec.add @velocity, Vec.scale acceleration, dt
+
+
+    @velocity = Vec.add @velocity, Vec.scale @acceleration, dt
     @velocity = Vec.scale @velocity, Math.pow(@damping, dt)
-
-
 
   draw: (ctx) ->
     vertices = @vertices()
