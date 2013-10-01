@@ -160,6 +160,7 @@ class Polygon
 
     # find the largest depth
     maxDepth = Vec.dotProduct refNorm, reference.deepest
+    contactNormal = Vec.invert minAxis # so it's B->A
     contacts = []
 
     # Calculate depth for each clipped point and return only those which are
@@ -167,7 +168,7 @@ class Polygon
     for point in clipped
       depth = Vec.dotProduct(refNorm, point) - maxDepth
       if depth >= 0
-        contacts.push new Contact(point, minAxis, depth)
+        contacts.push new Contact(point, contactNormal, depth)
 
     # For simplicity sake, only return the "deepest" contact point. Eventually
     # the physics engine will need to track more than one contact and update
