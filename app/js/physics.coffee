@@ -96,6 +96,7 @@ class Polygon
     return if @inverseMass <= 0 or dt <= 0
 
     @position = Vec.add @position, Vec.scale @velocity, dt
+    @position = Vec.add @position, Vec.scale @acceleration, dt * dt / 2
 
 
     @velocity = Vec.add @velocity, Vec.scale @acceleration, dt
