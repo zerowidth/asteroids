@@ -343,7 +343,7 @@ class Contact
     # apply impulses
     @from.velocity = Vec.add @from.velocity, Vec.scale impulsePerMass, @from.inverseMass
     if @to
-      @to.velocity = Vec.add @to.velocity, Vec.scale impulsePerMass, @to.inverseMass
+      @to.velocity = Vec.sub @to.velocity, Vec.scale impulsePerMass, @to.inverseMass
 
   resolveInterpenetration: ->
     return if @depth <= 0
@@ -355,7 +355,7 @@ class Contact
 
     @from.position = Vec.add @from.position, Vec.scale movePerIMass, @from.inverseMass
     if @to
-      @to.position = Vec.add @to.position, Vec.scale movePerIMass, -@to.inverseMass
+      @to.position = Vec.sub @to.position, Vec.scale movePerIMass, @to.inverseMass
 
   totalInvMass: ->
     total = @from.inverseMass
