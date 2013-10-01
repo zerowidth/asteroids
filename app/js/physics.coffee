@@ -6,17 +6,28 @@ window.physics = ->
   window.grid = new Grid 100, "#056"
   controls = new KeyboardControls
 
-  window.rect = new Rectangle 100, 100, [0, 80], 0.1, "#F00"
+  window.rect = new Rectangle 100, 100, [0, 51], 0, "#F00"
   rect.inverseMass = 1/10
+  window.rect2 = new Rectangle 50, 50, [0, 150], 0, "#00F"
+  rect2.inverseMass = 1/40
+
   floor = new Rectangle 800, 10, [0, -5], 0, "#888"
+
+  paused = false
 
   _.extend ctx,
     update: ->
+      return if paused
+      dt = ctx.dt / 1000
+
       rect.reset()
       rect.resetDebug()
+      rect2.reset()
+      rect2.resetDebug()
 
-      rect.integrate ctx.dt / 1000, controls
-      contacts = rect.contactPoints(floor)
+      rect.integrate dt, controls
+      rect2.integrate dt, controls
+      window.contacts = contacts = rect.contactPoints(floor).concat(rect2.contactPoints(rect))
 
       if contacts.length > 0
         for c, i in contacts
@@ -28,17 +39,21 @@ window.physics = ->
             if not worst or contact.separatingVelocity() < worst.separatingVelocity()
               worst = contact
           break if worst.separatingVelocity() >= 0
-          worst.resolve()
+          worst.resolve(dt)
 
     draw: ->
       grid.draw ctx
       rect.draw ctx
+      rect2.draw ctx
       floor.draw ctx
       rect.drawDebug ctx
+      rect2.drawDebug ctx
       stats.update()
     clear: ->
       ctx.clearRect -ctx.width/2, -ctx.height/2, ctx.width, ctx.height
     keyup: (e) ->
+      if e.keyCode is 32 # space
+        paused = !paused
       controls.keyup e
     keydown: controls.keydown
 
@@ -297,11 +312,11 @@ class Contact
       relativeV = Vec.sub relativeV, @to.velocity
     Vec.dotProduct relativeV, @normal
 
-  resolve: ->
-    @resolveVelocity()
-    @resolveInterpenetration()
+  resolve: (dt) ->
+    @resolveVelocity dt
+    @resolveInterpenetration dt
 
-  resolveVelocity: ->
+  resolveVelocity: (dt) ->
     sepV = @separatingVelocity()
     return if sepV >= 0 # separating or stationary
 
