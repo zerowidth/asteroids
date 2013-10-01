@@ -322,6 +322,15 @@ class Contact
     return if sepV >= 0 # separating or stationary
 
     newSepV = -sepV * @restitution
+
+    # check velocity buildup due to acceleration only
+    acceleratedV = if @from.inverseMass > 0 then @from.acceleration else 0
+    if @to and @to.inverseMass > 0
+      acceleratedV = Vec.sub acceleratedV, @to.acceleration
+    acceleratedSepV = Vec.dotProduct acceleratedV, Vec.scale @normal, dt
+    newSepV += @restitution * acceleratedSepV if acceleratedSepV < 0
+    newSepV = 0 if newSepV < 0
+
     deltaV = newSepV - sepV
 
     # apply change in velocity in proportion to inverse mass
