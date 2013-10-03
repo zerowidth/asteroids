@@ -6,12 +6,7 @@ window.physics = ->
   window.grid = new Grid 100, "#056"
   controls = new KeyboardControls
 
-  window.rect = new Rectangle 100, 100, [0, 51], 0, "#F00"
-  rect.inverseMass = 1/10
-  window.rect2 = new Rectangle 50, 50, [0, 150], 0, "#00F"
-  rect2.inverseMass = 1/40
-
-  floor = new Rectangle 800, 10, [0, -5], 0, "#888"
+  window.rect = new Rectangle 100, 100, [0, 0], inverseMass: 1/20, color: "#F00"
 
   paused = false
 
@@ -22,16 +17,10 @@ window.physics = ->
 
       rect.reset()
       rect.resetDebug()
-      rect2.reset()
-      rect2.resetDebug()
 
       rect.integrate dt, controls
-      rect2.integrate dt, controls
-      window.contacts = contacts = rect.contactPoints(floor).concat(rect2.contactPoints(rect))
 
       if contacts.length > 0
-        for c, i in contacts
-          console.log "contact #{i}", c.normal, c.depth, c.from.velocity
 
         for n in [1..contacts.length*2]
           worst = null
@@ -41,13 +30,12 @@ window.physics = ->
           break if worst.separatingVelocity() >= 0
           worst.resolve(dt)
 
+        # paused = true
+
     draw: ->
       grid.draw ctx
       rect.draw ctx
-      rect2.draw ctx
-      floor.draw ctx
       rect.drawDebug ctx
-      rect2.drawDebug ctx
       stats.update()
     clear: ->
       ctx.clearRect -ctx.width/2, -ctx.height/2, ctx.width, ctx.height
@@ -82,8 +70,11 @@ class Polygon
   inverseMass: 0 # required value
   inverseMoment: 0 # calculated value
 
-  acceleration: [0, -100] # gravity
+  # acceleration: [0, -100] # gravity
+  acceleration: [0, 0]
+  angularAccel: 0
   damping: 0.999 # minimal
+  angularDamping: 0.999
 
   vertices: -> []
 
@@ -93,14 +84,25 @@ class Polygon
   reset: -> # reset caches, forces, etc.
 
   integrate: (dt, controls) ->
-    return if @inverseMass <= 0 or dt <= 0
+    return if dt <= 0
 
-    @position = Vec.add @position, Vec.scale @velocity, dt
-    @position = Vec.add @position, Vec.scale @acceleration, dt * dt / 2
+    if @inverseMass > 0
+      @position = Vec.add @position, Vec.scale @velocity, dt
+      @position = Vec.add @position, Vec.scale @acceleration, dt * dt / 2
+
+      # TODO add forces here from whatever external forces are present (force
+      # generators + force generator registry?)
+
+      @velocity = Vec.scale @velocity, Math.pow(@damping, dt)
+      @velocity = Vec.add @velocity, Vec.scale @acceleration, dt
 
 
-    @velocity = Vec.add @velocity, Vec.scale @acceleration, dt
-    @velocity = Vec.scale @velocity, Math.pow(@damping, dt)
+    if @inverseMoment > 0
+      @orientation = Rotation.addAngle @orientation, @angularVelocity * dt
+      @orientation = Rotation.addAngle @orientation, @angularAccel * dt * dt / 2
+
+      @angularVelocity = Math.pow(@angularDamping, dt) * @angularVelocity
+      @angularVelocity += @angularAccel * dt
 
   draw: (ctx) ->
     vertices = @vertices()
@@ -187,11 +189,11 @@ class Polygon
     for point in clipped
       depth = Vec.dotProduct(refNorm, point) - maxDepth
       if depth >= 0
-        contacts.push new Contact(this, other, point, contactNormal, depth, 0.8)
+        contacts.push new Contact(this, other, point, contactNormal, depth, 0.5)
 
     # For simplicity sake, only return the "deepest" contact point. Eventually
     # the physics engine will need to track more than one contact and update
-    # them as each contact is resolved.
+    # related contacts as each one is resolved.
     if contacts[1] && contacts[1].depth > contacts[0].depth
       contacts = [contacts[1]]
     else
@@ -285,19 +287,34 @@ class Polygon
     (axis for axis in @perpendicularAxes() when Vec.dotProduct(axis, dir) > 0)
 
 class Rectangle extends Polygon
-  constructor: (sizeX, sizeY, position, angle, @color) ->
+  constructor: (sizeX, sizeY, position, opts = {}) ->
     @position = position
-    @orientation = Rotation.fromAngle angle
     @offsets = [[ sizeX/2,  sizeY/2],
                [-sizeX/2,  sizeY/2],
                [-sizeX/2, -sizeY/2],
                [ sizeX/2, -sizeY/2]]
+
+    @orientation = Rotation.fromAngle(opts.angle or 0)
+    @color = opts.color or "#888"
+
+    @velocity = opts.velocity or @velocity
+    @angularVelocity = opts.angularVelocity or @angularVelocity
+
+    @inverseMass = opts.inverseMass or 0
+    @inverseMoment = opts.inverseMoment or @calculateInverseMoment(sizeX, sizeY)
+
   reset: ->
     # TODO only reset if position/velocity/orientation have changed
     @cachedVertices = null
 
-  vertices: () ->
+  vertices: ->
     @cachedVertices ?= (Vec.transform offset, @position, @orientation for offset in @offsets)
+
+  calculateInverseMoment: (b, h) ->
+    if @inverseMass is 0
+      0
+    else
+      (1/@inverseMass)*(b*b + h*h)/12
 
 class Contact
   restitution: 1 # bounce!
