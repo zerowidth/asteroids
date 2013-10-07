@@ -64,14 +64,11 @@ class Display
   # center - [x, y] center of display
   # scale  - pixels per meter
   constructor: (@ctx, @center, @scale) ->
-  transformPoints: (points) ->
+
+  transform: (points...) ->
     dx = ctx.width/2
     dy = ctx.height/2
     ([x * @scale + dx, -y * @scale + dy ] for [x, y] in points)
-  transform: ([x, y]) ->
-    dx = ctx.width/2
-    dy = ctx.height/2
-    [x * @scale + dx, -y * @scale + dy ]
 
   extent: ->
     # ctx.width/2, ctx.height/2
@@ -130,7 +127,7 @@ class Polygon
       @angularVelocity += @angularAccel * dt
 
   draw: (display, ctx) ->
-    vertices = display.transformPoints @vertices()
+    vertices = display.transform @vertices()...
     ctx.save()
 
     ctx.beginPath()

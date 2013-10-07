@@ -122,12 +122,11 @@ window.Utils = Utils =
     ctx.restore()
 
   debugPoints: (display, ctx, color, points...) ->
-    points = display.transformPoints points
     ctx.save()
 
     ctx.fillStyle = color
 
-    for point in points
+    for point in display.transform(points...)
       ctx.beginPath()
       ctx.arc point[0], point[1], 4, 0, Math.PI * 2
       ctx.fill()
@@ -143,9 +142,9 @@ window.Utils = Utils =
     ctx.lineWidth = 1
 
     ctx.beginPath()
-    ctx.moveTo display.transform(contact.position)...
+    ctx.moveTo display.transform(contact.position)[0]...
     to = Vec.add contact.position, Vec.scale contact.normal, contact.depth
-    ctx.lineTo display.transform(to)...
+    ctx.lineTo display.transform(to)[0]...
     ctx.stroke()
 
     ctx.restore()
