@@ -1,63 +1,92 @@
 window.physics = ->
-  window.stats = Utils.drawStats()
 
-  window.ctx = Sketch.create
-    element: document.getElementById "physics"
-    retina: true
-
-  window.display = new Display ctx, [0, 0], 50
-
+  window.world = new World "physics"
 
   window.rect = new Rectangle 2, 2,
     position: [0, 0]
-    inverseMass: 1/1
+    inverseMass: 1/4
     color: "#F00"
 
   window.rect2 = new Rectangle 1, 1,
     position: [0, 5]
-    inverseMass: 1/5
-    velocity: [0, -2]
+    inverseMass: 1/1
+    velocity: [0, -1]
     color: "#00F"
 
-  paused = false
+  world.addObject rect
+  world.addObject rect2
 
-  _.extend ctx,
-    update: ->
-      return if paused
-      dt = ctx.dt / 1000
+class World
+  constructor: (element) ->
+    @ctx = Sketch.create
+      element: document.getElementById element
+      retina: true
+    @stats = Utils.drawStats()
+    @display = new Display @ctx, [0, 0], 50
 
-      rect.reset()
-      rect.resetDebug()
-      rect2.reset()
-      rect2.resetDebug()
+    @objects = []
+    @paused = true
 
-      rect.integrate dt
-      rect2.integrate dt
-      window.contacts = contacts = rect2.contactPoints(rect)
+    _.extend @ctx,
+      update: @update
+      draw: @draw
+      keyup: (e) =>
+        if e.keyCode is 32 # space
+          @paused = !@paused
 
-      if contacts.length > 0
-        for c, i in contacts
-          console.log "contact #{i}", c.normal, c.depth, c.from.velocity
+  addObject: (object) ->
+    @objects.push object
 
-        for n in [1..contacts.length*2]
-          worst = null
-          for contact in contacts
-            if not worst or contact.separatingVelocity() < worst.separatingVelocity()
-              worst = contact
-          break if worst.separatingVelocity() >= 0
-          worst.resolve(dt)
+  removeObject: (object) ->
+    @objects = _without(@objects, object)
 
-        paused = true
+  update: =>
+    return if @paused
 
-    draw: ->
-      rect.draw display, ctx
-      rect2.draw display, ctx
-      rect.drawDebug ctx
-      rect2.drawDebug ctx
-      stats.update()
-    keyup: (e) ->
-      if e.keyCode is 32 # space
-        paused = !paused
+    dt = @ctx.dt / 1000
+
+    for object in @objects
+      object.reset()
+      object.resetDebug()
+      object.integrate dt for object in @objects
+
+    @contacts = @narrowPhaseCollisions @broadPhaseCollisions()
+
+    if @contacts.length > 0
+      for c, i in @contacts
+        console.log "contact #{i}", c.normal, c.depth, c.from.velocity
+
+      for n in [1..@contacts.length*2] # loop contacts * 2 times
+        worst = null
+        for contact in @contacts
+          if not worst or contact.separatingVelocity() < worst.separatingVelocity()
+            worst = contact
+        break if worst.separatingVelocity() >= 0
+        worst.resolve(dt)
+
+      @paused = true
+
+  # Naive version: returns all unique pairs of objects, nothing more. TODO: use
+  # (memoized?) AABBs to build quadtree, then iterate and compare bounding boxes
+  # for overlap.
+  broadPhaseCollisions: ->
+    pairs = []
+    for i in [0..(@objects.length-2)]
+      for j in [(i+1)..(@objects.length-1)]
+        pairs.push [@objects[i], @objects[j]]
+    pairs
+
+  narrowPhaseCollisions: (pairs) ->
+    contacts = []
+    for [a, b] in pairs
+      contacts = contacts.concat(b.contactPoints a)
+    contacts
+
+  draw: =>
+    for object in @objects
+      object.draw @display, @ctx
+      object.drawDebug @display, @ctx # FIXME
+    @stats.update()
 
 class Display
   # ctx    - the canvas context
@@ -65,14 +94,18 @@ class Display
   # scale  - pixels per meter
   constructor: (@ctx, @center, @scale) ->
 
+  drawPolygon: (vertices, color) ->
+    points = @transform vertices
+    # @ctx.moveTo points
+
+  drawCircle: (point, radius, color) ->
+
+  drawLine: (from, to, color) ->
+
   transform: (points...) ->
-    dx = ctx.width/2
-    dy = ctx.height/2
+    dx = @ctx.width/2
+    dy = @ctx.height/2
     ([x * @scale + dx, -y * @scale + dy ] for [x, y] in points)
-
-  extent: ->
-    # ctx.width/2, ctx.height/2
-
 
 class Edge
   constructor: (@deepest, @from, @to) ->
@@ -147,7 +180,7 @@ class Polygon
     ctx.restore()
 
   resetDebug: -> @debug = {}
-  drawDebug: (ctx) ->
+  drawDebug: (display, ctx) ->
     # if ref = @debug.reference
     #   Utils.debugLine display, ctx, ref.from, ref.to, "#F66"
     # if inc = @debug.incident
@@ -211,11 +244,11 @@ class Polygon
     for point in clipped
       depth = Vec.dotProduct(refNorm, point) - maxDepth
       if depth >= 0
-        contacts.push new Contact(this, other, point, contactNormal, depth, 0.5)
+        contacts.push new Contact(this, other, point, contactNormal, depth, 0.3)
 
     # For simplicity sake, only return the "deepest" contact point. Eventually
-    # the physics engine will need to track more than one contact and update
-    # related contacts as each one is resolved.
+    # the physics engine will need to track more than one contact per pair of
+    # objects and update related contacts as each one is resolved.
     if contacts[1] && contacts[1].depth > contacts[0].depth
       contacts = [contacts[1]]
     else
