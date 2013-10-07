@@ -6,7 +6,10 @@ window.physics = ->
   window.grid = new Grid 100, "#056"
   controls = new KeyboardControls
 
-  window.rect = new Rectangle 100, 100, [0, 0], inverseMass: 1/20, color: "#F00"
+  window.rect = new Rectangle 2, 2,
+    position: [0, 0]
+    inverseMass: 1/1
+    color: "#F00"
 
   paused = false
 
@@ -286,9 +289,47 @@ class Polygon
     dir = Vec.sub other.position, @position
     (axis for axis in @perpendicularAxes() when Vec.dotProduct(axis, dir) > 0)
 
+  calculatePhysicalProperties: (opts) ->
+    @inverseMass = opts.inverseMass or @inverseMass
+
+    vertices = @vertices()
+
+    ix   = 0
+    iy   = 0
+    area = 0
+    cx   = 0
+    cy   = 0
+
+    for [[x0,y0], [x1,y1]] in Utils.pairs vertices
+      a     = (x0*y1 - x1*y0) # unsigned area of triangle
+      area += a
+      ix   += (y0*y0 + y0*y1 + y1*y1) * a
+      iy   += (x0*x0 + x0*x1 + x1*x1) * a
+      cx   += (x0 + x1) * a
+      cy   += (y0 + y1) * a
+
+    ix   = ix / 12
+    iy   = iy / 12
+    area = Math.abs(area) / 2
+    cx   = cx / (6 * area)
+    cy   = cy / (6 * area)
+
+    # parallel axis theorem to recenter moment around centroid
+    ix = ix - area * cx * cx
+    iy = iy - area * cy * cy
+
+    momentOfArea = ix + iy
+
+    if momentOfArea > 0 and @inverseMass > 0
+      mass           = 1 / @inverseMass
+      moment         = (mass / area) * momentOfArea
+      @inverseMoment = opts.inverseMoment or 1/moment
+
+    # TODO reset centroid with new values
+
 class Rectangle extends Polygon
-  constructor: (sizeX, sizeY, position, opts = {}) ->
-    @position = position
+  constructor: (sizeX, sizeY, opts = {}) ->
+    @position = opts.position or @position
     @offsets = [[ sizeX/2,  sizeY/2],
                [-sizeX/2,  sizeY/2],
                [-sizeX/2, -sizeY/2],
@@ -300,8 +341,7 @@ class Rectangle extends Polygon
     @velocity = opts.velocity or @velocity
     @angularVelocity = opts.angularVelocity or @angularVelocity
 
-    @inverseMass = opts.inverseMass or 0
-    @inverseMoment = opts.inverseMoment or @calculateInverseMoment(sizeX, sizeY)
+    @calculatePhysicalProperties opts
 
   reset: ->
     # TODO only reset if position/velocity/orientation have changed
