@@ -96,8 +96,11 @@ window.Utils = Utils =
     end   = if aMax > bMax then bMax else aMax
     end - start
 
-  debugLine: (ctx, from, to, color, dotSize = 3) ->
+  debugLine: (display, ctx, from, to, color, dotSize = 3) ->
     ctx.save()
+
+    from = display.transform from
+    to = display.transform to
 
     ctx.strokeStyle = color
     ctx.fillStyle = color
@@ -118,7 +121,8 @@ window.Utils = Utils =
 
     ctx.restore()
 
-  debugPoints: (ctx, color, points...) ->
+  debugPoints: (display, ctx, color, points...) ->
+    points = display.transformPoints points
     ctx.save()
 
     ctx.fillStyle = color
@@ -130,8 +134,8 @@ window.Utils = Utils =
 
     ctx.restore()
 
-  debugContact: (ctx, contact, color="#0F0") ->
-    @debugPoints ctx, color, contact.position
+  debugContact: (display, ctx, contact, color="#0F0") ->
+    @debugPoints display, ctx, color, contact.position
 
     ctx.save()
 
@@ -139,9 +143,9 @@ window.Utils = Utils =
     ctx.lineWidth = 1
 
     ctx.beginPath()
-    ctx.moveTo contact.position...
+    ctx.moveTo display.transform(contact.position)...
     to = Vec.add contact.position, Vec.scale contact.normal, contact.depth
-    ctx.lineTo to...
+    ctx.lineTo display.transform(to)...
     ctx.stroke()
 
     ctx.restore()

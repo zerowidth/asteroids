@@ -1,15 +1,23 @@
 window.physics = ->
   window.stats = Utils.drawStats()
+
   window.ctx = Sketch.create
     element: document.getElementById "physics"
-    # retina: true
-  window.grid = new Grid 100, "#056"
-  controls = new KeyboardControls
+    retina: true
+
+  window.display = new Display ctx, [0, 0], 50
+
 
   window.rect = new Rectangle 2, 2,
     position: [0, 0]
     inverseMass: 1/1
     color: "#F00"
+
+  window.rect2 = new Rectangle 1, 1,
+    position: [0, 5]
+    inverseMass: 1/5
+    velocity: [0, -2]
+    color: "#00F"
 
   paused = false
 
@@ -20,10 +28,16 @@ window.physics = ->
 
       rect.reset()
       rect.resetDebug()
+      rect2.reset()
+      rect2.resetDebug()
 
-      rect.integrate dt, controls
+      rect.integrate dt
+      rect2.integrate dt
+      window.contacts = contacts = rect2.contactPoints(rect)
 
       if contacts.length > 0
+        for c, i in contacts
+          console.log "contact #{i}", c.normal, c.depth, c.from.velocity
 
         for n in [1..contacts.length*2]
           worst = null
@@ -33,26 +47,35 @@ window.physics = ->
           break if worst.separatingVelocity() >= 0
           worst.resolve(dt)
 
-        # paused = true
+        paused = true
 
     draw: ->
-      grid.draw ctx
-      rect.draw ctx
+      rect.draw display, ctx
+      rect2.draw display, ctx
       rect.drawDebug ctx
+      rect2.drawDebug ctx
       stats.update()
-    clear: ->
-      ctx.clearRect -ctx.width/2, -ctx.height/2, ctx.width, ctx.height
     keyup: (e) ->
       if e.keyCode is 32 # space
         paused = !paused
-      controls.keyup e
-    keydown: controls.keydown
 
-  # | a c e |    |  1  0  0 |
-  # | b d f | => |  0 -1  0 |
-  # | 0 0 1 |    |  0  0  1 |
-  ctx.setTransform 1, 0, 0, -1, 0, 0 # flip y axis so it goes up (and z goes out)
-  ctx.translate ctx.width/2, -ctx.height/2 # center the origin
+class Display
+  # ctx    - the canvas context
+  # center - [x, y] center of display
+  # scale  - pixels per meter
+  constructor: (@ctx, @center, @scale) ->
+  transformPoints: (points) ->
+    dx = ctx.width/2
+    dy = ctx.height/2
+    ([x * @scale + dx, -y * @scale + dy ] for [x, y] in points)
+  transform: ([x, y]) ->
+    dx = ctx.width/2
+    dy = ctx.height/2
+    [x * @scale + dx, -y * @scale + dy ]
+
+  extent: ->
+    # ctx.width/2, ctx.height/2
+
 
 class Edge
   constructor: (@deepest, @from, @to) ->
@@ -76,8 +99,8 @@ class Polygon
   # acceleration: [0, -100] # gravity
   acceleration: [0, 0]
   angularAccel: 0
-  damping: 0.999 # minimal
-  angularDamping: 0.999
+  damping: 0.9999 # minimal
+  angularDamping: 0.9999
 
   vertices: -> []
 
@@ -86,7 +109,7 @@ class Polygon
 
   reset: -> # reset caches, forces, etc.
 
-  integrate: (dt, controls) ->
+  integrate: (dt) ->
     return if dt <= 0
 
     if @inverseMass > 0
@@ -99,7 +122,6 @@ class Polygon
       @velocity = Vec.scale @velocity, Math.pow(@damping, dt)
       @velocity = Vec.add @velocity, Vec.scale @acceleration, dt
 
-
     if @inverseMoment > 0
       @orientation = Rotation.addAngle @orientation, @angularVelocity * dt
       @orientation = Rotation.addAngle @orientation, @angularAccel * dt * dt / 2
@@ -107,8 +129,8 @@ class Polygon
       @angularVelocity = Math.pow(@angularDamping, dt) * @angularVelocity
       @angularVelocity += @angularAccel * dt
 
-  draw: (ctx) ->
-    vertices = @vertices()
+  draw: (display, ctx) ->
+    vertices = display.transformPoints @vertices()
     ctx.save()
 
     ctx.beginPath()
@@ -130,14 +152,14 @@ class Polygon
   resetDebug: -> @debug = {}
   drawDebug: (ctx) ->
     # if ref = @debug.reference
-    #   Utils.debugLine ctx, ref.from, ref.to, "#F66"
+    #   Utils.debugLine display, ctx, ref.from, ref.to, "#F66"
     # if inc = @debug.incident
-    #   Utils.debugLine ctx, inc.from, inc.to, "#66F"
+    #   Utils.debugLine display, ctx, inc.from, inc.to, "#66F"
     # if clipped = @debug.clipped
-    #   Utils.debugLine ctx, clipped[0], clipped[1], "#FF0"
+    #   Utils.debugLine display, ctx, clipped[0], clipped[1], "#FF0"
     if contacts = @debug.contacts
       for contact in contacts
-        Utils.debugContact ctx, contact, "#0F0"
+        Utils.debugContact display, ctx, contact, "#0F0"
 
   # Calculate contact points against another polygon.
   # from http://www.codezealot.org/archives/394 &c
@@ -357,7 +379,7 @@ class Rectangle extends Polygon
       (1/@inverseMass)*(b*b + h*h)/12
 
 class Contact
-  restitution: 1 # bounce!
+  restitution: 0.5 # fairly bouncy
 
   constructor: (@from, @to, @position, @normal, @depth, restitution=null) ->
     @restitution = restitution if restitution?
