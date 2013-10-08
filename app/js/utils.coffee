@@ -96,58 +96,15 @@ window.Utils = Utils =
     end   = if aMax > bMax then bMax else aMax
     end - start
 
-  debugLine: (display, ctx, from, to, color, dotSize = 3) ->
-    ctx.save()
+  debugLine: (display, from, to, color, dotSize = 3) ->
+    display.drawLine from, to, 2, color
+    display.drawCircle from, dotSize, color
+    display.drawCircle to, dotSize, color
 
-    from = display.transform from
-    to = display.transform to
-
-    ctx.strokeStyle = color
-    ctx.fillStyle = color
-    ctx.lineWidth = 2
-
-    ctx.beginPath()
-    ctx.moveTo from...
-    ctx.lineTo to...
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.arc from[0], from[1], dotSize, 0, Math.PI * 2
-    ctx.fill()
-
-    ctx.beginPath()
-    ctx.arc to[0], to[1], dotSize, 0, Math.PI * 2
-    ctx.fill()
-
-    ctx.restore()
-
-  debugPoints: (display, ctx, color, points...) ->
-    ctx.save()
-
-    ctx.fillStyle = color
-
-    for point in display.transform(points...)
-      ctx.beginPath()
-      ctx.arc point[0], point[1], 4, 0, Math.PI * 2
-      ctx.fill()
-
-    ctx.restore()
-
-  debugContact: (display, ctx, contact, color="#0F0") ->
-    @debugPoints display, ctx, color, contact.position
-
-    ctx.save()
-
-    ctx.strokeStyle = color
-    ctx.lineWidth = 1
-
-    ctx.beginPath()
-    ctx.moveTo display.transform(contact.position)[0]...
-    to = Vec.add contact.position, Vec.scale contact.normal, contact.depth
-    ctx.lineTo display.transform(to)[0]...
-    ctx.stroke()
-
-    ctx.restore()
+  debugContact: (display, contact, color="#0F0") ->
+    display.drawCircle contact.position, 3, color
+    endpoint = Vec.add contact.position, Vec.scale contact.normal, contact.depth
+    display.drawLine contact.position, endpoint, 1, color
 
 window.Grid = class Grid
   constructor: (@size, @color) ->

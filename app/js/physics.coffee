@@ -84,8 +84,8 @@ class World
 
   draw: =>
     for object in @objects
-      object.draw @display, @ctx
-      object.drawDebug @display, @ctx # FIXME
+      object.draw @display
+      object.drawDebug @display
     @stats.update()
 
 class Display
@@ -94,18 +94,60 @@ class Display
   # scale  - pixels per meter
   constructor: (@ctx, @center, @scale) ->
 
-  drawPolygon: (vertices, color) ->
-    points = @transform vertices
-    # @ctx.moveTo points
-
-  drawCircle: (point, radius, color) ->
-
-  drawLine: (from, to, color) ->
-
   transform: (points...) ->
     dx = @ctx.width/2
     dy = @ctx.height/2
     ([x * @scale + dx, -y * @scale + dy ] for [x, y] in points)
+
+  drawPolygon: (vertices, color) ->
+    vertices = @transform vertices...
+
+    @ctx.save()
+    @ctx.beginPath()
+
+    @ctx.moveTo vertices[0]...
+    for point in vertices[1..]
+      @ctx.lineTo point...
+    @ctx.lineTo vertices[0]...
+
+    @ctx.globalAlpha = 0.5
+    @ctx.fillStyle = color
+    @ctx.fill()
+
+    @ctx.globalAlpha = 1
+    @ctx.strokeStyle = color
+    @ctx.stroke()
+
+    @ctx.restore()
+
+  drawCircle: (center, radius, color) ->
+    @ctx.save()
+
+    center = @transform(center)[0]
+
+    @ctx.fillStyle = color
+
+    @ctx.beginPath()
+    @ctx.arc center[0], center[1], radius, 0, Math.PI * 2
+    @ctx.fill()
+
+    @ctx.restore()
+
+  drawLine: (from, to, width, color) ->
+    @ctx.save()
+
+    from = @transform(from)[0]
+    to = @transform(to)[0]
+
+    @ctx.strokeStyle = color
+    @ctx.lineWidth = width
+
+    @ctx.beginPath()
+    @ctx.moveTo from...
+    @ctx.lineTo to...
+    @ctx.stroke()
+
+    @ctx.restore()
 
 class Edge
   constructor: (@deepest, @from, @to) ->
@@ -159,37 +201,21 @@ class Polygon
       @angularVelocity = Math.pow(@angularDamping, dt) * @angularVelocity
       @angularVelocity += @angularAccel * dt
 
-  draw: (display, ctx) ->
-    vertices = display.transform @vertices()...
-    ctx.save()
-
-    ctx.beginPath()
-    ctx.moveTo vertices[0]...
-    for point in vertices[1..]
-      ctx.lineTo point...
-    ctx.lineTo vertices[0]...
-
-    ctx.globalAlpha = 0.5
-    ctx.fillStyle = @color
-    ctx.fill()
-
-    ctx.globalAlpha = 1
-    ctx.strokeStyle = @color
-    ctx.stroke()
-
-    ctx.restore()
+  draw: (display) ->
+    display.drawPolygon @vertices(), @color
 
   resetDebug: -> @debug = {}
-  drawDebug: (display, ctx) ->
+
+  drawDebug: (display) ->
     # if ref = @debug.reference
-    #   Utils.debugLine display, ctx, ref.from, ref.to, "#F66"
+    #   Utils.debugLine display, ref.from, ref.to, "#F66"
     # if inc = @debug.incident
-    #   Utils.debugLine display, ctx, inc.from, inc.to, "#66F"
+    #   Utils.debugLine display, inc.from, inc.to, "#66F"
     # if clipped = @debug.clipped
-    #   Utils.debugLine display, ctx, clipped[0], clipped[1], "#FF0"
+    #   Utils.debugLine display, clipped[0], clipped[1], "#FF0"
     if contacts = @debug.contacts
       for contact in contacts
-        Utils.debugContact display, ctx, contact, "#0F0"
+        Utils.debugContact display, contact, "#0F0"
 
   # Calculate contact points against another polygon.
   # from http://www.codezealot.org/archives/394 &c
