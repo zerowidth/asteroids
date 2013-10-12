@@ -19,7 +19,14 @@ Vec =
       theta += @TWO_PI
     theta
 
-  perpendicular: ([x,y]) ->
+  # cross product in 2d is a scalar:
+  crossProduct: ([x0, y0], [x1, y1]) ->
+    x0*y1 - y0*x1
+
+  # "cross product" yields a non-normalized perpendicular vector
+  perpendicular: ([x, y]) ->
+    [-y, x]
+  perpendicularNormal: ([x,y]) ->
     @normalize [-y, x]
 
   normalize: ([x,y]) ->

@@ -3,15 +3,18 @@ window.physics = ->
   window.world = new World "physics"
 
   window.rect = new Rectangle 2, 2,
-    position: [0, 0]
+    position: [0, -1]
     inverseMass: 1/4
+    velocity: [0, 1]
+    angularVelocity: Math.PI/4
     color: "#F00"
 
   window.rect2 = new Rectangle 1, 1,
-    position: [0, 5]
+    position: [1.6, 1.4]
+    # angle: Math.PI/4
     inverseMass: 1/1
-    velocity: [0, -1]
-    color: "#00F"
+    # velocity: [0, -1.5]
+    color: "#08F"
 
   world.addObject rect
   world.addObject rect2
@@ -53,8 +56,9 @@ class World
     @contacts = @narrowPhaseCollisions @broadPhaseCollisions()
 
     if @contacts.length > 0
+      console.log "--------------------------------------------------------------------------------"
       for c, i in @contacts
-        console.log "contact #{i}", c.normal, c.depth, c.from.velocity
+        console.log "contact #{i}", "normal", c.normal, "depth", c.depth, "sepV", c.separatingVelocity()
 
       for n in [1..@contacts.length*2] # loop contacts * 2 times
         worst = null
@@ -64,7 +68,7 @@ class World
         break if worst.separatingVelocity() >= 0
         worst.resolve(dt)
 
-      @paused = true
+      # @paused = true
 
   # Naive version: returns all unique pairs of objects, nothing more. TODO: use
   # (memoized?) AABBs to build quadtree, then iterate and compare bounding boxes
@@ -258,7 +262,7 @@ class Polygon
     @debug.clipped = clipped
 
     # get the reference edge normal
-    refNorm = Vec.perpendicular reference.vec
+    refNorm = Vec.perpendicularNormal reference.vec
 
     # find the largest depth
     maxDepth = Vec.dotProduct refNorm, reference.deepest
@@ -361,7 +365,7 @@ class Polygon
 
   perpendicularAxes: ->
     for pair in Utils.pairs @vertices()
-      Vec.perpendicular Vec.sub pair[1], pair[0]
+      Vec.perpendicularNormal Vec.sub pair[1], pair[0]
 
   perpendicularAxesFacing: (other) ->
     dir = Vec.sub other.position, @position
@@ -397,13 +401,20 @@ class Polygon
     iy = iy - area * cy * cy
 
     momentOfArea = ix + iy
+    console.log "moment of area #{@color}", momentOfArea
 
     if momentOfArea > 0 and @inverseMass > 0
       mass           = 1 / @inverseMass
       moment         = (mass / area) * momentOfArea
       @inverseMoment = opts.inverseMoment or 1/moment
 
-    # TODO reset centroid with new values
+    # TODO reset position to centroid using the new values
+
+  relativePositionAt: (point) ->
+    Vec.sub point, @position
+
+  angularVelocityAt: (point) ->
+    Vec.scale Vec.perpendicular(@relativePositionAt(point)), @angularVelocity
 
 class Rectangle extends Polygon
   constructor: (sizeX, sizeY, opts = {}) ->
@@ -443,12 +454,16 @@ class Contact
   # Calculated fresh each time, as the position and velocity may have changed
   # during a previous contact resolution iteration
   separatingVelocity: ->
-    relativeV = @from.velocity
+    relativeV = Vec.add @from.velocity, @from.angularVelocityAt(@position)
     if @to
-      relativeV = Vec.sub relativeV, @to.velocity
+      toV = Vec.add @to.velocity, @to.angularVelocityAt(@position)
+      relativeV = Vec.sub relativeV, toV
+
+    # only care about normal for now, no friction
     Vec.dotProduct relativeV, @normal
 
   resolve: (dt) ->
+    console.log "----- resolving", "normal", @normal, "depth", @depth, "sepV", @separatingVelocity()
     @resolveVelocity dt
     @resolveInterpenetration dt
 
@@ -456,29 +471,60 @@ class Contact
     sepV = @separatingVelocity()
     return if sepV >= 0 # separating or stationary
 
-    newSepV = -sepV * @restitution
+    # TODO save acceleration per frame and compensate here
 
-    # check velocity buildup due to acceleration only
-    acceleratedV = if @from.inverseMass > 0 then @from.acceleration else 0
-    if @to and @to.inverseMass > 0
-      acceleratedV = Vec.sub acceleratedV, @to.acceleration
-    acceleratedSepV = Vec.dotProduct acceleratedV, Vec.scale @normal, dt
-    newSepV += @restitution * acceleratedSepV if acceleratedSepV < 0
-    newSepV = 0 if newSepV < 0
+    console.log "sepV", sepV
 
-    deltaV = newSepV - sepV
+    qRel = @from.relativePositionAt @position
+    torquePerUnitImpulse = Vec.crossProduct qRel, @normal
+    rotationPerUnitImpulse = torquePerUnitImpulse * @from.inverseMoment
+    velocityPerUnitImpulse = Vec.perpendicular Vec.scale(qRel, rotationPerUnitImpulse)
+    # constrain to normal:
+    deltaV = @from.inverseMass
+    deltaV += Vec.dotProduct velocityPerUnitImpulse, @normal
+    console.log "from:", "linear", @from.inverseMass
+    console.log "from:", "qRel", qRel, "torque per unit", torquePerUnitImpulse, "invMoment", @from.inverseMoment
+    console.log "from:", "rot per unit", rotationPerUnitImpulse, "vel per unit", velocityPerUnitImpulse
+    console.log "from:", "dV", Vec.dotProduct(velocityPerUnitImpulse, @normal)
 
-    # apply change in velocity in proportion to inverse mass
-    totalInvMass = @totalInvMass()
-    return if totalInvMass <= 0 # nobody's goin' nowhere
-
-    impulse = deltaV / totalInvMass
-    impulsePerMass = Vec.scale @normal, impulse
-
-    # apply impulses
-    @from.velocity = Vec.add @from.velocity, Vec.scale impulsePerMass, @from.inverseMass
     if @to
-      @to.velocity = Vec.sub @to.velocity, Vec.scale impulsePerMass, @to.inverseMass
+      qRel = @to.relativePositionAt @position
+      torquePerUnitImpulse = Vec.crossProduct qRel, @normal
+      rotationPerUnitImpulse = torquePerUnitImpulse * @to.inverseMoment
+      velocityPerUnitImpulse = Vec.perpendicular Vec.scale(qRel, rotationPerUnitImpulse)
+      deltaV += Vec.dotProduct velocityPerUnitImpulse, @normal
+      deltaV += @to.inverseMass
+      console.log "to:", "linear", @to.inverseMass
+      console.log "to:", "qRel", qRel, "torque per unit", torquePerUnitImpulse, "invMoment", @to.inverseMoment
+      console.log "to:", "rot per unit", rotationPerUnitImpulse, "vel per unit", velocityPerUnitImpulse
+      console.log "to:", "dV", Vec.dotProduct(velocityPerUnitImpulse, @normal)
+
+    desiredDeltaV = -sepV * (1 + @restitution)
+    console.log "deltaV per unit impulse", deltaV, "desired deltaV", desiredDeltaV
+
+    impulse = Vec.scale @normal, desiredDeltaV / deltaV
+
+    console.log "impulse", impulse
+
+    impulsiveTorque = Vec.crossProduct @from.relativePositionAt(@position), impulse
+
+    console.log "from:", "impulse", impulse
+    console.log "from:", "impulsive torque", impulsiveTorque, "d-omega", impulsiveTorque * @from.inverseMoment
+    @from.velocity = Vec.add @from.velocity, Vec.scale impulse, @from.inverseMass
+    @from.angularVelocity += impulsiveTorque * @from.inverseMoment
+    console.log "from:", "vel", @from.velocity, "angVel", @from.angularVelocity
+
+    if @to
+      impulse = Vec.invert impulse
+      impulsiveTorque = Vec.crossProduct @to.relativePositionAt(@position), impulse
+
+      console.log "to:", "impulse", impulse, "at", @to.relativePositionAt(@position)
+      console.log "to:", "impulsive torque", impulsiveTorque, "d-omega", impulsiveTorque * @to.inverseMoment
+      @to.velocity = Vec.add @to.velocity, Vec.scale impulse, @to.inverseMass
+      @to.angularVelocity += impulsiveTorque * @to.inverseMoment
+      console.log "to:", "vel", @to.velocity, "angVel", @to.angularVelocity
+
+    console.log "sepV is now", @separatingVelocity()
 
   resolveInterpenetration: ->
     return if @depth <= 0
@@ -492,12 +538,14 @@ class Contact
     if @to
       @to.position = Vec.sub @to.position, Vec.scale movePerIMass, @to.inverseMass
 
+    @depth = 0 # FIXME
+
   totalInvMass: ->
     total = @from.inverseMass
     total += @to.inverseMass if @to
     total
 
-window.Rotation =
+window.Rotation = Rotation =
   fromAngle: (angle) -> [Math.cos(angle), Math.sin(angle)]
   add: ([a,b],[c,d]) -> [a*c - b*d, a*d + c*b]
   addAngle: (rotation, angle) -> @add rotation, @fromAngle(angle)
