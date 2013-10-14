@@ -5,15 +5,17 @@ window.physics = ->
   window.rect = new Rectangle 2, 2,
     position: [0, -1]
     inverseMass: 1/4
-    velocity: [0, 1]
-    angularVelocity: Math.PI/4
+    inverseMass: 0
+    velocity: [0, 0.0001]
+    # angularVelocity: Math.PI/4
     color: "#F00"
 
   window.rect2 = new Rectangle 1, 1,
-    position: [1.6, 1.4]
-    # angle: Math.PI/4
+    position: [0,0.5]
+    angle: 0.2
     inverseMass: 1/1
     # velocity: [0, -1.5]
+    # angularVelocity: -Math.PI/2
     color: "#08F"
 
   world.addObject rect
@@ -165,7 +167,7 @@ class Edge
 
 class Polygon
   position: [0, 0]
-  rotation: [1, 0] # Rotation.fromAngle(0)
+  orientation: [1, 0] # Rotation.fromAngle(0)
 
   velocity: [0, 0]
   angularVelocity: 0
@@ -416,6 +418,18 @@ class Polygon
   angularVelocityAt: (point) ->
     Vec.scale Vec.perpendicular(@relativePositionAt(point)), @angularVelocity
 
+  angularInertiaAt: (position, direction) ->
+    qRel = @relativePositionAt position
+    torquePerUnitImpulse = Vec.crossProduct qRel, direction
+    rotationPerUnitImpulse = torquePerUnitImpulse * @inverseMoment
+    velocityPerUnitImpulse = Vec.perpendicular Vec.scale(qRel, rotationPerUnitImpulse)
+    Vec.dotProduct velocityPerUnitImpulse, direction
+
+  applyImpulse: (impulse, position) ->
+    impulsiveTorque = Vec.crossProduct @relativePositionAt(position), impulse
+    @velocity = Vec.add @velocity, Vec.scale impulse, @inverseMass
+    @angularVelocity += impulsiveTorque * @inverseMoment
+
 class Rectangle extends Polygon
   constructor: (sizeX, sizeY, opts = {}) ->
     @position = opts.position or @position
@@ -473,72 +487,59 @@ class Contact
 
     # TODO save acceleration per frame and compensate here
 
-    console.log "sepV", sepV
+    # console.log "sepV", sepV
 
-    qRel = @from.relativePositionAt @position
-    torquePerUnitImpulse = Vec.crossProduct qRel, @normal
-    rotationPerUnitImpulse = torquePerUnitImpulse * @from.inverseMoment
-    velocityPerUnitImpulse = Vec.perpendicular Vec.scale(qRel, rotationPerUnitImpulse)
-    # constrain to normal:
+    # calculate distribution of desired deltaV between linear and angular
+    # components on both bodies:
     deltaV = @from.inverseMass
-    deltaV += Vec.dotProduct velocityPerUnitImpulse, @normal
-    console.log "from:", "linear", @from.inverseMass
-    console.log "from:", "qRel", qRel, "torque per unit", torquePerUnitImpulse, "invMoment", @from.inverseMoment
-    console.log "from:", "rot per unit", rotationPerUnitImpulse, "vel per unit", velocityPerUnitImpulse
-    console.log "from:", "dV", Vec.dotProduct(velocityPerUnitImpulse, @normal)
+    deltaV += @from.angularInertiaAt(@position, @normal)
 
     if @to
-      qRel = @to.relativePositionAt @position
-      torquePerUnitImpulse = Vec.crossProduct qRel, @normal
-      rotationPerUnitImpulse = torquePerUnitImpulse * @to.inverseMoment
-      velocityPerUnitImpulse = Vec.perpendicular Vec.scale(qRel, rotationPerUnitImpulse)
-      deltaV += Vec.dotProduct velocityPerUnitImpulse, @normal
       deltaV += @to.inverseMass
-      console.log "to:", "linear", @to.inverseMass
-      console.log "to:", "qRel", qRel, "torque per unit", torquePerUnitImpulse, "invMoment", @to.inverseMoment
-      console.log "to:", "rot per unit", rotationPerUnitImpulse, "vel per unit", velocityPerUnitImpulse
-      console.log "to:", "dV", Vec.dotProduct(velocityPerUnitImpulse, @normal)
+      deltaV += @to.angularInertiaAt(@position, @normal)
 
     desiredDeltaV = -sepV * (1 + @restitution)
-    console.log "deltaV per unit impulse", deltaV, "desired deltaV", desiredDeltaV
-
     impulse = Vec.scale @normal, desiredDeltaV / deltaV
 
-    console.log "impulse", impulse
-
-    impulsiveTorque = Vec.crossProduct @from.relativePositionAt(@position), impulse
-
-    console.log "from:", "impulse", impulse
-    console.log "from:", "impulsive torque", impulsiveTorque, "d-omega", impulsiveTorque * @from.inverseMoment
-    @from.velocity = Vec.add @from.velocity, Vec.scale impulse, @from.inverseMass
-    @from.angularVelocity += impulsiveTorque * @from.inverseMoment
-    console.log "from:", "vel", @from.velocity, "angVel", @from.angularVelocity
+    @from.applyImpulse impulse, @position
 
     if @to
       impulse = Vec.invert impulse
-      impulsiveTorque = Vec.crossProduct @to.relativePositionAt(@position), impulse
+      @to.applyImpulse impulse, @position
 
-      console.log "to:", "impulse", impulse, "at", @to.relativePositionAt(@position)
-      console.log "to:", "impulsive torque", impulsiveTorque, "d-omega", impulsiveTorque * @to.inverseMoment
-      @to.velocity = Vec.add @to.velocity, Vec.scale impulse, @to.inverseMass
-      @to.angularVelocity += impulsiveTorque * @to.inverseMoment
-      console.log "to:", "vel", @to.velocity, "angVel", @to.angularVelocity
-
-    console.log "sepV is now", @separatingVelocity()
+    # console.log "sepV is now", @separatingVelocity()
 
   resolveInterpenetration: ->
     return if @depth <= 0
 
-    totalInvMass = @totalInvMass()
-    return if totalInvMass <= 0 # nobody's goin' nowhere
+    # Similar to velocity resolution, distribute penetration resolution between
+    # linear and angular components proportional to the bodies' inertia.
+    # Velocity change per unit impulse is inertia by a different name.
 
-    movePerIMass = Vec.scale @normal, (@depth / totalInvMass)
+    totalInertia = @from.inverseMass
+    totalInertia += @from.angularInertiaAt(@position, @normal)
 
-    @from.position = Vec.add @from.position, Vec.scale movePerIMass, @from.inverseMass
     if @to
-      @to.position = Vec.sub @to.position, Vec.scale movePerIMass, @to.inverseMass
+      totalInertia += @to.inverseMass
+      totalInertia += @to.angularInertiaAt(@position, @normal)
 
-    @depth = 0 # FIXME
+    return if totalInertia <= 0 # nobody's goin' nowhere
+
+    move = @depth / totalInertia
+
+    @from.position = Vec.add @from.position, Vec.scale @normal, move * @from.inverseMass
+    impulsiveTorque = Vec.crossProduct @from.relativePositionAt(@position), @normal
+    rotationChange = move * @from.inverseMoment * impulsiveTorque
+    @from.orientation = Rotation.addAngle @from.orientation, rotationChange
+
+    if @to
+      @to.position = Vec.sub @to.position, Vec.scale @normal, move * @to.inverseMass
+      impulsiveTorque = Vec.crossProduct @to.relativePositionAt(@position), @normal
+      rotationChange = move * @to.inverseMoment * impulsiveTorque
+      @to.orientation = Rotation.addAngle @to.orientation, rotationChange
+
+    @depth = 0
+    # TODO update depth of related contacts with corrected version
 
   totalInvMass: ->
     total = @from.inverseMass
