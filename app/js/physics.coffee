@@ -430,6 +430,15 @@ class Polygon
     @velocity = Vec.add @velocity, Vec.scale impulse, @inverseMass
     @angularVelocity += impulsiveTorque * @inverseMoment
 
+  changePosition: (normal, amount) ->
+    @position = Vec.add @position, Vec.scale normal, amount
+
+  rotateByImpulse: (position, normal, amount) ->
+    impulsiveTorque = Vec.crossProduct @relativePositionAt(position), normal
+    impulsePerMove  = @inverseMoment * impulsiveTorque
+    rotationChange  = amount * impulsePerMove
+    @orientation    = Rotation.addAngle @orientation, rotationChange
+
 class Rectangle extends Polygon
   constructor: (sizeX, sizeY, opts = {}) ->
     @position = opts.position or @position
@@ -525,21 +534,41 @@ class Contact
 
     return if totalInertia <= 0 # nobody's goin' nowhere
 
-    move = @depth / totalInertia
+    # how far per inertia should each body move?
+    moveRatio = @depth / totalInertia
 
-    @from.position = Vec.add @from.position, Vec.scale @normal, move * @from.inverseMass
-    impulsiveTorque = Vec.crossProduct @from.relativePositionAt(@position), @normal
-    rotationChange = move * @from.inverseMoment * impulsiveTorque
-    @from.orientation = Rotation.addAngle @from.orientation, rotationChange
+    [linearMove, angularMove] = @calculateMove @from, moveRatio
+    @from.changePosition @normal, linearMove
+    @from.rotateByImpulse @position, @normal, angularMove
 
     if @to
-      @to.position = Vec.sub @to.position, Vec.scale @normal, move * @to.inverseMass
-      impulsiveTorque = Vec.crossProduct @to.relativePositionAt(@position), @normal
-      rotationChange = move * @to.inverseMoment * impulsiveTorque
-      @to.orientation = Rotation.addAngle @to.orientation, rotationChange
+      [linearMove, angularMove] = @calculateMove @to, moveRatio
+      @to.changePosition @normal, -linearMove
+      @to.rotateByImpulse @position, @normal, -angularMove
 
     @depth = 0
     # TODO update depth of related contacts with corrected version
+
+  calculateMove: (body, moveRatio) ->
+    linearMove  = moveRatio * body.inverseMass
+    angularMove = moveRatio * body.angularInertiaAt(@position, @normal)
+
+    # Limit the rotation movement by a factor relative to the size of the body.
+    # The relative position of the contact serves as a stand-in for actual size.
+    # This prevents a body from being rotated "too far", and instead shifts the
+    # burden of angular movement to the linear portion.
+
+    limit = Vec.magnitude(body.relativePositionAt(@position)) * 0.1
+    if Math.abs(angularMove) > limit
+      total = linearMove + angularMove
+      if angularMove >= 0
+        angularMove = limit
+      else
+        angularMove = -limit
+      linearMove = total - angularMove
+
+    [linearMove, angularMove]
+
 
   totalInvMass: ->
     total = @from.inverseMass

@@ -30,7 +30,7 @@ Vec =
     @normalize [-y, x]
 
   normalize: ([x,y]) ->
-    scale = Math.sqrt(x*x + y*y)
+    scale = @magnitude [x,y]
     if scale is 0
       [0, 0]
     else
@@ -38,6 +38,9 @@ Vec =
 
   dotProduct: ([x1, y1], [x2, y2]) ->
     x1*x2 + y1*y2
+
+  magnitude: ([x,y]) ->
+    Math.sqrt(x*x + y*y)
 
   # | a b c |   | x |   | ax + by + c |
   # | e f g | * | y | = | ex + fy + g |
