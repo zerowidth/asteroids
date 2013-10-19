@@ -58,17 +58,26 @@ class World
     @contacts = @narrowPhaseCollisions @broadPhaseCollisions()
 
     if @contacts.length > 0
-      console.log "--------------------------------------------------------------------------------"
-      for c, i in @contacts
-        console.log "contact #{i}", "normal", c.normal, "depth", c.depth, "sepV", c.separatingVelocity()
 
       for n in [1..@contacts.length*2] # loop contacts * 2 times
         worst = null
         for contact in @contacts
-          if not worst or contact.separatingVelocity() < worst.separatingVelocity()
+          if not worst or contact.depth > worst.depth
             worst = contact
-        break if worst.separatingVelocity() >= 0
-        worst.resolve(dt)
+        break if worst.depth <= 0
+        worst.resolveInterpenetration()
+
+      for n in [1..@contacts.length*2]
+        worst = null
+        worstSepV = null
+        for contact in @contacts
+          sepV = contact.separatingVelocity()
+          if not worst or sepV < worstSepV
+            worst     = contact
+            worstSepV = sepV
+
+        break if worstSepV > 0
+        worst.resolveVelocity dt
 
       # @paused = true
 
@@ -278,13 +287,9 @@ class Polygon
       if depth >= 0
         contacts.push new Contact(this, other, point, contactNormal, depth, 0.3)
 
-    # For simplicity sake, only return the "deepest" contact point. Eventually
-    # the physics engine will need to track more than one contact per pair of
-    # objects and update related contacts as each one is resolved.
-    if contacts[1] && contacts[1].depth > contacts[0].depth
-      contacts = [contacts[1]]
-    else
-      contacts = [contacts[0]]
+    if contacts[1]
+      contacts[0].related = contacts[1]
+      contacts[1].related = contacts[0]
 
     @debug.contacts = contacts
 
@@ -403,7 +408,6 @@ class Polygon
     iy = iy - area * cy * cy
 
     momentOfArea = ix + iy
-    console.log "moment of area #{@color}", momentOfArea
 
     if momentOfArea > 0 and @inverseMass > 0
       mass           = 1 / @inverseMass
@@ -431,13 +435,16 @@ class Polygon
     @angularVelocity += impulsiveTorque * @inverseMoment
 
   changePosition: (normal, amount) ->
-    @position = Vec.add @position, Vec.scale normal, amount
+    linearChange = Vec.scale normal, amount
+    @position = Vec.add @position, linearChange
+    linearChange
 
   rotateByImpulse: (position, normal, amount) ->
     impulsiveTorque = Vec.crossProduct @relativePositionAt(position), normal
     impulsePerMove  = @inverseMoment * impulsiveTorque
     rotationChange  = amount * impulsePerMove
     @orientation    = Rotation.addAngle @orientation, rotationChange
+    rotationChange
 
 class Rectangle extends Polygon
   constructor: (sizeX, sizeY, opts = {}) ->
@@ -485,11 +492,6 @@ class Contact
     # only care about normal for now, no friction
     Vec.dotProduct relativeV, @normal
 
-  resolve: (dt) ->
-    console.log "----- resolving", "normal", @normal, "depth", @depth, "sepV", @separatingVelocity()
-    @resolveVelocity dt
-    @resolveInterpenetration dt
-
   resolveVelocity: (dt) ->
     sepV = @separatingVelocity()
     return if sepV >= 0 # separating or stationary
@@ -516,14 +518,13 @@ class Contact
       impulse = Vec.invert impulse
       @to.applyImpulse impulse, @position
 
-    # console.log "sepV is now", @separatingVelocity()
+    console.log "sepV is now", @separatingVelocity()
 
   resolveInterpenetration: ->
     return if @depth <= 0
 
     # Similar to velocity resolution, distribute penetration resolution between
     # linear and angular components proportional to the bodies' inertia.
-    # Velocity change per unit impulse is inertia by a different name.
 
     totalInertia = @from.inverseMass
     totalInertia += @from.angularInertiaAt(@position, @normal)
@@ -538,16 +539,27 @@ class Contact
     moveRatio = @depth / totalInertia
 
     [linearMove, angularMove] = @calculateMove @from, moveRatio
-    @from.changePosition @normal, linearMove
-    @from.rotateByImpulse @position, @normal, angularMove
+    linearChange   = @from.changePosition @normal, linearMove
+    rotationChange = @from.rotateByImpulse @position, @normal, angularMove
+
+    if @related
+      rotationDistance = Vec.scale Vec.perpendicular(@from.relativePositionAt(@related.position)), rotationChange
+      deltaPosition = Vec.add linearChange, rotationDistance
+      relativeChange = Vec.dotProduct @related.normal, deltaPosition
+      @related.depth -= relativeChange
 
     if @to
       [linearMove, angularMove] = @calculateMove @to, moveRatio
-      @to.changePosition @normal, -linearMove
-      @to.rotateByImpulse @position, @normal, -angularMove
+      linearChange = @to.changePosition @normal, -linearMove
+      rotationChange = @to.rotateByImpulse @position, @normal, -angularMove
+
+      if @related
+        rotationDistance = Vec.scale Vec.perpendicular(@to.relativePositionAt(@related.position)), rotationChange
+        deltaPosition = Vec.add linearChange, rotationDistance
+        relativeChange = Vec.dotProduct @related.normal, deltaPosition
+        @related.depth += relativeChange
 
     @depth = 0
-    # TODO update depth of related contacts with corrected version
 
   calculateMove: (body, moveRatio) ->
     linearMove  = moveRatio * body.inverseMass
@@ -558,7 +570,7 @@ class Contact
     # This prevents a body from being rotated "too far", and instead shifts the
     # burden of angular movement to the linear portion.
 
-    limit = Vec.magnitude(body.relativePositionAt(@position)) * 0.1
+    limit = Vec.magnitude(body.relativePositionAt(@position)) * 0.2
     if Math.abs(angularMove) > limit
       total = linearMove + angularMove
       if angularMove >= 0
@@ -568,12 +580,6 @@ class Contact
       linearMove = total - angularMove
 
     [linearMove, angularMove]
-
-
-  totalInvMass: ->
-    total = @from.inverseMass
-    total += @to.inverseMass if @to
-    total
 
 window.Rotation = Rotation =
   fromAngle: (angle) -> [Math.cos(angle), Math.sin(angle)]
