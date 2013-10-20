@@ -540,23 +540,15 @@ class Contact
     [linearMove, angularMove] = @calculateMove @from, moveRatio
     linearChange   = @from.changePosition @normal, linearMove
     rotationChange = @from.rotateByImpulse @position, @normal, angularMove
-
     if @related
-      rotationDistance = Vec.scale Vec.perpendicular(@from.relativePositionAt(@related.position)), rotationChange
-      deltaPosition = Vec.add linearChange, rotationDistance
-      relativeChange = Vec.dotProduct @related.normal, deltaPosition
-      @related.depth -= relativeChange
+      @related.updatePenetration linearChange, rotationChange, @from, -1
 
     if @to
       [linearMove, angularMove] = @calculateMove @to, moveRatio
       linearChange = @to.changePosition @normal, -linearMove
       rotationChange = @to.rotateByImpulse @position, @normal, -angularMove
-
       if @related
-        rotationDistance = Vec.scale Vec.perpendicular(@to.relativePositionAt(@related.position)), rotationChange
-        deltaPosition = Vec.add linearChange, rotationDistance
-        relativeChange = Vec.dotProduct @related.normal, deltaPosition
-        @related.depth += relativeChange
+        @related.updatePenetration linearChange, rotationChange, @to, 1
 
     @depth = 0
 
@@ -579,6 +571,13 @@ class Contact
       linearMove = total - angularMove
 
     [linearMove, angularMove]
+
+  updatePenetration: (linearChange, rotationChange, referenceBody, sign) ->
+    relativePosition = referenceBody.relativePositionAt(@position)
+    rotationDistance = Vec.scale Vec.perpendicular(relativePosition), rotationChange
+    deltaPosition = Vec.add linearChange, rotationDistance
+    relativeChange = Vec.dotProduct @normal, deltaPosition
+    @depth += relativeChange * sign
 
 window.Rotation = Rotation =
   fromAngle: (angle) -> [Math.cos(angle), Math.sin(angle)]
