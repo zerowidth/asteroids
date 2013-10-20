@@ -2,24 +2,24 @@ window.physics = ->
 
   window.world = new World "physics"
 
-  window.rect = new Rectangle 2, 2,
+  window.rect = new Rectangle 5, 2,
     position: [0, -1]
-    inverseMass: 1/4
     inverseMass: 0
-    velocity: [0, 0.0001]
     # angularVelocity: Math.PI/4
     color: "#F00"
 
   window.rect2 = new Rectangle 1, 1,
     position: [0,0.5]
-    angle: 0.2
     inverseMass: 1/1
-    # velocity: [0, -1.5]
     # angularVelocity: -Math.PI/2
+    acceleration: [0, -2]
     color: "#08F"
 
-  world.addObject rect
-  world.addObject rect2
+  world.addBody rect
+  world.addBody rect2
+
+window.debug = (msgs...) ->
+  # console.log msgs...
 
 class World
   constructor: (element) ->
@@ -29,7 +29,7 @@ class World
     @stats = Utils.drawStats()
     @display = new Display @ctx, [0, 0], 50
 
-    @objects = []
+    @bodies = []
     @paused = true
 
     _.extend @ctx,
@@ -39,21 +39,21 @@ class World
         if e.keyCode is 32 # space
           @paused = !@paused
 
-  addObject: (object) ->
-    @objects.push object
+  addBody: (body) ->
+    @bodies.push body
 
-  removeObject: (object) ->
-    @objects = _without(@objects, object)
+  removeBody: (body) ->
+    @bodies = _without(@bodies, body)
 
   update: =>
     return if @paused
 
     dt = @ctx.dt / 1000
 
-    for object in @objects
-      object.reset()
-      object.resetDebug()
-      object.integrate dt for object in @objects
+    for body in @bodies
+      body.reset()
+      body.resetDebug()
+      body.integrate dt
 
     @contacts = @narrowPhaseCollisions @broadPhaseCollisions()
 
@@ -81,14 +81,14 @@ class World
 
       # @paused = true
 
-  # Naive version: returns all unique pairs of objects, nothing more. TODO: use
+  # Naive version: returns all unique pairs of bodies, nothing more. TODO: use
   # (memoized?) AABBs to build quadtree, then iterate and compare bounding boxes
   # for overlap.
   broadPhaseCollisions: ->
     pairs = []
-    for i in [0..(@objects.length-2)]
-      for j in [(i+1)..(@objects.length-1)]
-        pairs.push [@objects[i], @objects[j]]
+    for i in [0..(@bodies.length-2)]
+      for j in [(i+1)..(@bodies.length-1)]
+        pairs.push [@bodies[i], @bodies[j]]
     pairs
 
   narrowPhaseCollisions: (pairs) ->
@@ -98,9 +98,9 @@ class World
     contacts
 
   draw: =>
-    for object in @objects
-      object.draw @display
-      object.drawDebug @display
+    for body in @bodies
+      body.draw @display
+      body.drawDebug @display
     @stats.update()
 
 class Display
@@ -518,7 +518,6 @@ class Contact
       impulse = Vec.invert impulse
       @to.applyImpulse impulse, @position
 
-    console.log "sepV is now", @separatingVelocity()
 
   resolveInterpenetration: ->
     return if @depth <= 0
