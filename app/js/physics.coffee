@@ -189,6 +189,9 @@ class Polygon
   damping: 0.9999 # minimal
   angularDamping: 0.9999
 
+  # bookkeeping
+  lastAcceleration: [0, 0]
+
   vertices: -> []
 
   color: "#CCC"
@@ -206,8 +209,11 @@ class Polygon
       # TODO add forces here from whatever external forces are present (force
       # generators + force generator registry?)
 
+      # save the acceleration for contact resolution for resting contacts.
+      @lastAcceleration = Vec.scale @acceleration, dt
+
       @velocity = Vec.scale @velocity, Math.pow(@damping, dt)
-      @velocity = Vec.add @velocity, Vec.scale @acceleration, dt
+      @velocity = Vec.add @velocity, @lastAcceleration
 
     if @inverseMoment > 0
       @orientation = Rotation.addAngle @orientation, @angularVelocity * dt
@@ -460,6 +466,8 @@ class Rectangle extends Polygon
     @velocity = opts.velocity or @velocity
     @angularVelocity = opts.angularVelocity or @angularVelocity
 
+    @acceleration = opts.acceleration or @acceleration
+
     @calculatePhysicalProperties opts
 
   reset: ->
@@ -498,18 +506,23 @@ class Contact
 
     # TODO save acceleration per frame and compensate here
 
-    # console.log "sepV", sepV
+    # debug "sepV", sepV
 
     # calculate distribution of desired deltaV between linear and angular
     # components on both bodies:
     deltaV = @from.inverseMass
     deltaV += @from.angularInertiaAt(@position, @normal)
 
+    # ignore velocity accumulated in the last frame for reducing vibration
+    # during resting contacts.
+    velocityFromAcceleration = Vec.dotProduct @from.lastAcceleration, @normal
+
     if @to
       deltaV += @to.inverseMass
       deltaV += @to.angularInertiaAt(@position, @normal)
+      velocityFromAcceleration -= Vec.dotProduct @to.lastAcceleration, @normal
 
-    desiredDeltaV = -sepV * (1 + @restitution)
+    desiredDeltaV = -sepV - @restitution * (sepV - velocityFromAcceleration)
     impulse = Vec.scale @normal, desiredDeltaV / deltaV
 
     @from.applyImpulse impulse, @position
