@@ -522,6 +522,9 @@ class Contact
       deltaV += @to.angularInertiaAt(@position, @normal)
       velocityFromAcceleration -= Vec.dotProduct @to.lastAcceleration, @normal
 
+    # limit restitution on low-speed collisions (i.e. resting contacts)
+    appliedRestitution = Math.abs(sepV) < 0.1 ? 0 : @restitution
+
     desiredDeltaV = -sepV - @restitution * (sepV - velocityFromAcceleration)
     impulse = Vec.scale @normal, desiredDeltaV / deltaV
 
