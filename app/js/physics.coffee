@@ -491,17 +491,21 @@ class Contact
 
   # Calculated fresh each time, as the position and velocity may have changed
   # during a previous contact resolution iteration
-  separatingVelocity: ->
+  relativeVelocity: ->
     relativeV = Vec.add @from.velocity, @from.angularVelocityAt(@position)
     if @to
       toV = Vec.add @to.velocity, @to.angularVelocityAt(@position)
       relativeV = Vec.sub relativeV, toV
+    relativeV
 
-    # only care about normal for now, no friction
-    Vec.dotProduct relativeV, @normal
+  separatingVelocity: ->
+    Vec.dotProduct @relativeVelocity(), @normal
 
   resolveVelocity: (dt) ->
-    sepV = @separatingVelocity()
+    relV = @relativeVelocity()
+    sepV = Vec.dotProduct relV, @normal
+    tangent = Vec.normalize Vec.sub(relV, Vec.scale(@normal, sepV))
+
     return if sepV >= 0 # separating or stationary
 
     # TODO save acceleration per frame and compensate here
@@ -526,13 +530,33 @@ class Contact
     appliedRestitution = Math.abs(sepV) < 0.1 ? 0 : @restitution
 
     desiredDeltaV = -sepV - @restitution * (sepV - velocityFromAcceleration)
-    impulse = Vec.scale @normal, desiredDeltaV / deltaV
+    impulse = desiredDeltaV / deltaV
+    reactionImpulse = Vec.scale @normal, impulse
 
-    @from.applyImpulse impulse, @position
-
+    @from.applyImpulse reactionImpulse, @position
     if @to
-      impulse = Vec.invert impulse
-      @to.applyImpulse impulse, @position
+      @to.applyImpulse Vec.invert(reactionImpulse), @position
+
+    friction = 0.3 # hardcoded coefficient
+    frictionLimit = friction * Vec.magnitude(reactionImpulse)
+
+    deltaV = @from.inverseMass
+    deltaV += @from.angularInertiaAt(@position, tangent)
+    if @to
+      deltaV += @to.inverseMass
+      deltaV += @to.angularInertiaAt(@position, tangent)
+
+    vTangent = Vec.dotProduct relV, tangent
+    tangentImpulse = -vTangent / deltaV
+    limit = friction * impulse
+    if tangentImpulse > limit then tangentImpulse = limit
+    if tangentImpulse < -limit then tangentImpulse = -limit
+
+    frictionImpulse = Vec.scale tangent, tangentImpulse
+
+    @from.applyImpulse frictionImpulse, @position
+    if @to
+      @to.applyImpulse Vec.invert(frictionImpulse), @position
 
 
   resolveInterpenetration: ->
