@@ -5,18 +5,30 @@ window.physics = ->
   window.rect = new Rectangle 5, 2,
     position: [0, -1]
     inverseMass: 0
-    # angularVelocity: Math.PI/4
     color: "#F00"
 
   window.rect2 = new Rectangle 1, 1,
-    position: [0,0.5]
+    position: [0, 0.75]
     inverseMass: 1/1
-    # angularVelocity: -Math.PI/2
     acceleration: [0, -2]
     color: "#08F"
 
+  window.rect3 = new Rectangle 1, 1,
+    position: [0,2]
+    inverseMass: 1/1
+    acceleration: [0, -2]
+    color: "#0AF"
+
+  window.rect4 = new Rectangle 1, 1,
+    position: [0,3]
+    inverseMass: 1/1
+    acceleration: [0, -2]
+    color: "#0CF"
+
   world.addBody rect
   world.addBody rect2
+  world.addBody rect3
+  world.addBody rect4
 
 window.debug = (msgs...) ->
   # console.log msgs...
