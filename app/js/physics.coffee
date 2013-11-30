@@ -42,14 +42,22 @@ class World
     @display = new Display @ctx, [0, 0], 50
 
     @bodies = []
+    @slow = false
     @paused = true
 
     _.extend @ctx,
       update: @update
       draw: @draw
+      keydown: (e) =>
+        switch e.keyCode
+          when 16 # shift
+            @slow = true
       keyup: (e) =>
-        if e.keyCode is 32 # space
-          @paused = !@paused
+        switch e.keyCode
+          when 32 # space
+            @paused = !@paused
+          when 16 # shift
+            @slow = false
 
   addBody: (body) ->
     @bodies.push body
@@ -61,6 +69,7 @@ class World
     return if @paused
 
     dt = @ctx.dt / 1000
+    dt = dt / 5 if @slow
 
     for body in @bodies
       body.reset()
