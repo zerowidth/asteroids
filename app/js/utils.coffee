@@ -106,6 +106,14 @@ window.Utils = Utils =
     endpoint = Vec.add contact.position, Vec.scale contact.normal, contact.depth
     display.drawLine contact.position, endpoint, 1, color
 
+window.Rotation = Rotation =
+  fromAngle: (angle) -> [Math.cos(angle), Math.sin(angle)]
+  add: ([a,b],[c,d]) -> [a*c - b*d, a*d + c*b]
+  addAngle: (rotation, angle) -> @add rotation, @fromAngle(angle)
+  toAngle: (rotation) -> Math.acos rotation[0]
+  fromDeg: (deg) -> deg * 2 * Math.PI / 360
+  toDeg: (rad) -> rad * 360 / (2 * Math.PI)
+
 window.Grid = class Grid
   constructor: (@size, @color) ->
   draw: (ctx) =>
