@@ -1,10 +1,10 @@
 window.World = class World
-  constructor: (element) ->
+  constructor: (element, scale=50) ->
     @ctx = Sketch.create
       element: document.getElementById element
       retina: true
     @stats = Utils.drawStats()
-    @display = new Display @ctx, [0, 0], 50
+    @display = new Display @ctx, [0, 0], scale
 
     @bodies = []
     @slow = false
