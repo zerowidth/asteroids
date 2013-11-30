@@ -1,4 +1,4 @@
-window.Polygon = class Polygon
+window.PolygonalBody = class PolygonalBody
   position: [0, 0]
   orientation: [1, 0] # Rotation.fromAngle(0)
 
@@ -275,37 +275,6 @@ window.Polygon = class Polygon
     rotationChange  = amount * impulsePerMove
     @orientation    = Rotation.addAngle @orientation, rotationChange
     rotationChange
-
-window.Rectangle = class Rectangle extends Polygon
-  constructor: (sizeX, sizeY, opts = {}) ->
-    @position = opts.position or @position
-    @offsets = [[ sizeX/2,  sizeY/2],
-               [-sizeX/2,  sizeY/2],
-               [-sizeX/2, -sizeY/2],
-               [ sizeX/2, -sizeY/2]]
-
-    @orientation = Rotation.fromAngle(opts.angle or 0)
-    @color = opts.color or "#888"
-
-    @velocity = opts.velocity or @velocity
-    @angularVelocity = opts.angularVelocity or @angularVelocity
-
-    @acceleration = opts.acceleration or @acceleration
-
-    @calculatePhysicalProperties opts
-
-  reset: ->
-    # TODO only reset if position/velocity/orientation have changed
-    @cachedVertices = null
-
-  vertices: ->
-    @cachedVertices ?= (Vec.transform offset, @position, @orientation for offset in @offsets)
-
-  calculateInverseMoment: (b, h) ->
-    if @inverseMass is 0
-      0
-    else
-      (1/@inverseMass)*(b*b + h*h)/12
 
 class Contact
   restitution: 0.3 # TODO calculate this from objects involved
