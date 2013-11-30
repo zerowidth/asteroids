@@ -1,6 +1,6 @@
-window.physics = ->
+window.go = ->
 
-  window.world = new World "physics"
+  window.world = new World "display"
 
   window.rect = new Rectangle 5, 2,
     position: [0, -1]
