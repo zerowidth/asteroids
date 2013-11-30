@@ -2,27 +2,27 @@ window.go = ->
 
   window.world = new World "display"
 
-  window.rect = new Rectangle 5, 2,
-    position: [0, -1]
-    inverseMass: 0
+  window.rect = new Rectangle 5, 0.5,
+    position: [0, 0]
+    inverseMass: 1/10
     color: "#F00"
 
   window.rect2 = new Rectangle 1, 1,
-    position: [0, 0.75]
+    position: [0, 1]
     inverseMass: 1/1
-    acceleration: [0, -2]
+    velocity: [1, -2]
     color: "#08F"
 
   window.rect3 = new Rectangle 1, 1,
-    position: [0,2]
+    position: [0,-1]
     inverseMass: 1/1
-    acceleration: [0, -2]
+    velocity: [-1, 2]
     color: "#0AF"
 
   window.rect4 = new Rectangle 1, 1,
-    position: [0,3]
-    inverseMass: 1/1
-    acceleration: [0, -2]
+    position: [2.5,-5]
+    inverseMass: 1/5
+    velocity: [0, 3.5]
     color: "#0CF"
 
   world.addBody rect
