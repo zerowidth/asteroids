@@ -115,7 +115,7 @@ window.Polygon = class Polygon
     for point in clipped
       depth = Vec.dotProduct(refNorm, point) - maxDepth
       if depth >= 0
-        contacts.push new Contact(this, other, point, contactNormal, depth, 0.3)
+        contacts.push new Contact(this, other, point, contactNormal, depth)
 
     if contacts[1]
       contacts[0].related = contacts[1]
@@ -308,7 +308,7 @@ window.Rectangle = class Rectangle extends Polygon
       (1/@inverseMass)*(b*b + h*h)/12
 
 class Contact
-  restitution: 0.5 # fairly bouncy
+  restitution: 0.3 # TODO calculate this from objects involved
 
   constructor: (@from, @to, @position, @normal, @depth, restitution=null) ->
     @restitution = restitution if restitution?
