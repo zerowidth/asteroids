@@ -17,6 +17,8 @@ module.exports = require(process.env['LINEMAN_MAIN']).config.extend('files', {
     app: [
       "app/js/vector.coffee",
       "app/js/utils.coffee",
+      "app/js/display.coffee",
+      "app/js/world.coffee",
       "app/js/physics.coffee"
     ]
   }
