@@ -1,27 +1,77 @@
 window.PolygonalBody = class PolygonalBody
+  # where it is
   position: [0, 0]
   orientation: [1, 0] # Rotation.fromAngle(0)
 
+  # where it's going
   velocity: [0, 0]
   angularVelocity: 0
-  inverseMass: 0 # required value
-  inverseMoment: 0 # calculated value
 
+  # where it will be going
   # acceleration: [0, -100] # gravity
   acceleration: [0, 0]
   angularAccel: 0
+
+  # how heavy is it?
+  inverseMass: 0 # required value if density not provided
+  inverseMoment: null # calculated value, explicitly 0 to pin in place
+  density: null
+
+  # what's it look like?
+  color: "#CCC"
+
+  # simulation parameters
   damping: 0.9999 # minimal
   angularDamping: 0.9999
 
   # bookkeeping
   lastAcceleration: [0, 0]
 
+  # Public: override this in subclasses to define the vertices of this
+  # polygonal body.
   vertices: -> []
 
-  color: "#CCC"
-  debug: {}
+  # Public: reset any per-frame caches, e.g. vertices, forces, etc.
+  reset: ->
 
-  reset: -> # reset caches, forces, etc.
+  # Public: Initialize a polygonal body.
+  #
+  # opts - a dictionary of options, which can include:
+  #        position        - location of the body
+  #        orientation     - [x, iy] rotation of the body, OR:
+  #        angle           - angle of orientation
+  #        velocity        - [dx, dy] velocity
+  #        angularVelocity - dTheta angular velocity
+  #        acceleration    - [ddx, ddy] acceleration vector
+  #        angularAccel    - angular acceleration scalar
+  #        inverseMass     - inverse mass (0 for infinite)
+  #        inverseMoment   - inverse moment (0 for infinite)
+  #        density         - mass per unit area, instead of mass/moment
+  #        color           - "#RRGGBB" color of the body
+  #
+  # Note that the vertices must be available at the time this constructor is
+  # called so that the physical properties (area, mass, moment of inertia) can
+  # be calculated.
+  constructor: (opts = {}) ->
+    @position = opts.position if opts.position
+    if opts.angle
+      @orientation = Rotation.fromAngle(opts.angle)
+    else if opts.orientation
+      @orientation = opts.orientation
+
+    @velocity        = opts.velocity if opts.velocity
+    @angularVelocity = opts.angularVelocity if opts.angularVelocity
+
+    @acceleration    = opts.acceleration if opts.acceleration
+    @angularAccel    = opts.angularAccel if opts.angularAccel
+
+    @inverseMass     = opts.inverseMass if opts.inverseMass
+    @inverseMoment   = opts.inverseMoment if opts.inverseMoment
+    @density         = opts.density if opts.density
+
+    @color           = opts.color if opts.color
+
+    @calculatePhysicalProperties()
 
   integrate: (dt) ->
     return if dt <= 0
@@ -49,8 +99,8 @@ window.PolygonalBody = class PolygonalBody
   draw: (display) ->
     display.drawPolygon @vertices(), @color
 
+  debug: {}
   resetDebug: -> @debug = {}
-
   drawDebug: (display) ->
     # if ref = @debug.reference
     #   Utils.debugLine display, ref.from, ref.to, "#F66"
@@ -208,9 +258,7 @@ window.PolygonalBody = class PolygonalBody
     dir = Vec.sub other.position, @position
     (axis for axis in @perpendicularAxes() when Vec.dotProduct(axis, dir) > 0)
 
-  calculatePhysicalProperties: (opts) ->
-    @inverseMass = opts.inverseMass or @inverseMass
-
+  calculatePhysicalProperties: ->
     vertices = @vertices()
 
     ix   = 0
@@ -219,6 +267,7 @@ window.PolygonalBody = class PolygonalBody
     cx   = 0
     cy   = 0
 
+    # Surveyor's formula
     for [[x0,y0], [x1,y1]] in Utils.pairs vertices
       a     = (x0*y1 - x1*y0) # unsigned area of triangle
       area += a
@@ -239,12 +288,16 @@ window.PolygonalBody = class PolygonalBody
 
     momentOfArea = ix + iy
 
-    if momentOfArea > 0 and @inverseMass > 0
+    if @density
+      mass = area * @density
+      @inverseMass = if mass > 0 then 1/mass else 0
+
+    if momentOfArea > 0 and @inverseMass > 0 and not @inverseMoment
       mass           = 1 / @inverseMass
       moment         = (mass / area) * momentOfArea
-      @inverseMoment = opts.inverseMoment or 1/moment
+      @inverseMoment = 1/moment
 
-    # TODO reset position to centroid using the new values
+    # TODO reset position to centroid using the new values, if different.
 
   relativePositionAt: (point) ->
     Vec.sub point, @position
