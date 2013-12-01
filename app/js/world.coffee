@@ -70,6 +70,7 @@ window.World = class World
   # (memoized?) AABBs to build quadtree, then iterate and compare bounding boxes
   # for overlap.
   broadPhaseCollisions: ->
+    return [] if @bodies.length < 2
     pairs = []
     for i in [0..(@bodies.length-2)]
       for j in [(i+1)..(@bodies.length-1)]
