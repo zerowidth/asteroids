@@ -96,6 +96,16 @@ window.Utils = Utils =
     end   = if aMax > bMax then bMax else aMax
     end - start
 
+  random: Math.random
+  # Deterministic awful pseudo-RNG for easy testing
+  # seed: 15
+  # random: ->
+  #   x = Math.sin(@seed++) * 10000
+  #   x - Math.floor(x)
+
+  randomInt: (min, max) ->
+    min + Math.floor(@random() * (max - min))
+
   debugLine: (display, from, to, color, dotSize = 3) ->
     display.drawLine from, to, 2, color
     display.drawCircle from, dotSize, color

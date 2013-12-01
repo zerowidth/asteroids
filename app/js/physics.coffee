@@ -297,7 +297,10 @@ window.PolygonalBody = class PolygonalBody
       moment         = (mass / area) * momentOfArea
       @inverseMoment = 1/moment
 
-    # TODO reset position to centroid using the new values, if different.
+    # Store the difference between the calculated centroid and position. This
+    # should always be [0, 0] but the value is stored for future correction if
+    # it differs.
+    @centroidOffset = Vec.sub [cx, cy], @position
 
   relativePositionAt: (point) ->
     Vec.sub point, @position
@@ -353,10 +356,6 @@ class Contact
     tangent = Vec.normalize Vec.sub(relV, Vec.scale(@normal, sepV))
 
     return if sepV >= 0 # separating or stationary
-
-    # TODO save acceleration per frame and compensate here
-
-    # debug "sepV", sepV
 
     # calculate distribution of desired deltaV between linear and angular
     # components on both bodies:

@@ -1,5 +1,5 @@
 window.World = class World
-  constructor: (element, scale=50) ->
+  constructor: (element, scale=50, paused=false) ->
     @ctx = Sketch.create
       element: document.getElementById element
       retina: true
@@ -8,7 +8,7 @@ window.World = class World
 
     @bodies = []
     @slow = false
-    @paused = true
+    @paused = paused
 
     _.extend @ctx,
       update: @update
