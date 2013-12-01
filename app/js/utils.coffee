@@ -28,7 +28,7 @@ window.KeyboardControls = class KeyboardControls
         @down = true
 
 window.Utils = Utils =
-  drawStats: () ->
+  drawStats: ->
     stats = new Stats()
     stats.setMode(0) # 0: fps, 1: ms
     stats.domElement.style.position = 'absolute'

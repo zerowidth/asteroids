@@ -33,7 +33,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
   #        points   - [ [x,y] ...] vertices, relative to specified position.
   #
   constructor: (size, opts = {}) ->
-    @points = opts.points or @generatePoints(size)
+    @points = opts.points or @generatePoints(size/2)
     super opts
 
     # Update position and offsets to match the calculated centroid, unless both
@@ -46,12 +46,12 @@ window.Asteroid = class Asteroid extends PolygonalBody
   reset: ->
 
   # Internal: generate a somewhat randomized asteroid shape.
-  generatePoints: (size) ->
+  generatePoints: (radius) ->
     n = Utils.randomInt 7, 13
     wedgeSize = 2 * Math.PI / n
 
     points = for i in [0...n]
-      r = size - (Utils.random() * size/2)
+      r = radius - (Utils.random() * radius/2)
       theta = i * wedgeSize + (Utils.random() * wedgeSize/1.5 - wedgeSize/3)
       [ r * Math.cos(theta), r * Math.sin(theta) ]
 
@@ -78,7 +78,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
   # Internal: Based on the calculated centroid, adjust the position (and point
   # offsets) so they match up.
-  recalculateCentroid: () ->
+  recalculateCentroid: ->
     @position = Vec.add @position, @centroidOffset
     @points = (Vec.sub p, @centroidOffset for p in @points)
     @centroidOffset = [0, 0]
