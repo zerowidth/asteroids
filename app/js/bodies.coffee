@@ -41,9 +41,11 @@ window.Asteroid = class Asteroid extends PolygonalBody
     @recalculateCentroid() unless opts.position and opts.vertices
 
   vertices: ->
-    (Vec.transform point, @position, @orientation for point in @points)
+    @cachedVertices ?=
+      (Vec.transform point, @position, @orientation for point in @points)
 
   reset: ->
+    @cachedVertices = null
 
   # Internal: generate a somewhat randomized asteroid shape.
   generatePoints: (radius) ->
