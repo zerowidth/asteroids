@@ -43,7 +43,7 @@ window.Display = class Display
 
     @ctx.restore()
 
-  drawLine: (from, to, width, color) ->
+  drawLine: (from, to, width, color, alpha=1) ->
     @ctx.save()
 
     from = @transform(from)[0]
@@ -51,6 +51,8 @@ window.Display = class Display
 
     @ctx.strokeStyle = color
     @ctx.lineWidth = width
+
+    @ctx.globalAlpha = alpha if alpha < 1
 
     @ctx.beginPath()
     @ctx.moveTo from...

@@ -90,6 +90,10 @@ window.Utils = Utils =
     values = (Vec.dotProduct point, axis for point in points)
     [Math.min(values...), Math.max(values...)]
 
+  aabbOverlap: ([[ax1, ay1], [ax2, ay2]], [[bx1, by1], [bx2, by2]]) ->
+    @intervalOverlap([ax1, ax2], [bx1, bx2]) > 0 and
+      @intervalOverlap([ay1, ay2], [by1, by2]) > 0
+
   # if > 0, intervals overlap.
   intervalOverlap: ([aMin, aMax], [bMin, bMax]) ->
     start = if aMin < bMin then bMin else aMin
@@ -110,6 +114,13 @@ window.Utils = Utils =
     display.drawLine from, to, 2, color
     display.drawCircle from, dotSize, color
     display.drawCircle to, dotSize, color
+
+  debugAABB: (display, aabb, color, alpha=0.5) ->
+    [[x1, y1], [x2, y2]] = aabb
+    display.drawLine [x1, y1], [x2, y1], 1, color, alpha
+    display.drawLine [x2, y1], [x2, y2], 1, color, alpha
+    display.drawLine [x2, y2], [x1, y2], 1, color, alpha
+    display.drawLine [x1, y2], [x1, y1], 1, color, alpha
 
   debugContact: (display, contact, color="#0F0") ->
     display.drawCircle contact.position, 3, color

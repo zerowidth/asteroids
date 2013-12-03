@@ -73,6 +73,21 @@ window.PolygonalBody = class PolygonalBody
 
     @calculatePhysicalProperties()
 
+  # Public: return an axis-aligned bounding box: [[xmin, ymin], [xmax, ymax]]
+  aabb: ->
+    vertices = @vertices()
+    [x, y] = vertices[0]
+    xmin = xmax = x
+    ymin = ymax = y
+
+    for [x, y] in vertices
+      xmin = x if x < xmin
+      xmax = x if x > xmax
+      ymin = y if y < ymin
+      ymax = y if y > ymax
+
+    @debug.aabb = [[xmin, ymin], [xmax, ymax]]
+
   integrate: (dt) ->
     return if dt <= 0
 
@@ -101,6 +116,7 @@ window.PolygonalBody = class PolygonalBody
 
   debug: {}
   resetDebug: -> @debug = {}
+
   drawDebug: (display) ->
     # if ref = @debug.reference
     #   Utils.debugLine display, ref.from, ref.to, "#F66"
@@ -111,6 +127,8 @@ window.PolygonalBody = class PolygonalBody
     if contacts = @debug.contacts
       for contact in contacts
         Utils.debugContact display, contact, "#0F0"
+    if aabb = @debug.aabb
+      Utils.debugAABB display, aabb, "#F0F", 0.5
 
   # Calculate contact points against another polygon.
   # from http://www.codezealot.org/archives/394 &c

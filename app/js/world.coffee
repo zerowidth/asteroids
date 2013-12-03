@@ -66,15 +66,17 @@ window.World = class World
 
       # @paused = true
 
-  # Naive version: returns all unique pairs of bodies, nothing more. TODO: use
-  # (memoized?) AABBs to build quadtree, then iterate and compare bounding boxes
-  # for overlap.
+  # Naive version: returns all unique pairs of bodies with overlapping AABB's.
+  # TODO: use AABB to build quadtree?
   broadPhaseCollisions: ->
     return [] if @bodies.length < 2
     pairs = []
     for i in [0..(@bodies.length-2)]
       for j in [(i+1)..(@bodies.length-1)]
-        pairs.push [@bodies[i], @bodies[j]]
+        a = @bodies[i]
+        b = @bodies[j]
+        if Utils.aabbOverlap a.aabb(), b.aabb()
+          pairs.push [a, b]
     pairs
 
   narrowPhaseCollisions: (pairs) ->
