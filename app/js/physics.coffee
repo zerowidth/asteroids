@@ -27,13 +27,6 @@ window.PolygonalBody = class PolygonalBody
   # bookkeeping
   lastAcceleration: [0, 0]
 
-  # Public: override this in subclasses to define the vertices of this
-  # polygonal body.
-  vertices: -> []
-
-  # Public: reset any per-frame caches, e.g. vertices, forces, etc.
-  reset: ->
-
   # Public: Initialize a polygonal body.
   #
   # opts - a dictionary of options, which can include:
@@ -72,6 +65,13 @@ window.PolygonalBody = class PolygonalBody
     @color           = opts.color if opts.color
 
     @calculatePhysicalProperties()
+
+  # Public: override this in subclasses to define the vertices of this
+  # polygonal body.
+  vertices: -> []
+
+  # Public: reset any per-frame caches, e.g. vertices, forces, etc.
+  reset: ->
 
   # Public: return an axis-aligned bounding box: [[xmin, ymin], [xmax, ymax]]
   aabb: ->
@@ -118,12 +118,14 @@ window.PolygonalBody = class PolygonalBody
   resetDebug: -> @debug = {}
 
   drawDebug: (display) ->
-    # if ref = @debug.reference
-    #   Utils.debugLine display, ref.from, ref.to, "#F66"
-    # if inc = @debug.incident
-    #   Utils.debugLine display, inc.from, inc.to, "#66F"
-    # if clipped = @debug.clipped
-    #   Utils.debugLine display, clipped[0], clipped[1], "#FF0"
+    if minAxis = @debug.minAxis
+      Utils.debugLine display, [0,0], minAxis, "#F6F"
+    if ref = @debug.reference
+      Utils.debugLine display, ref.from, ref.to, "#F66"
+    if inc = @debug.incident
+      Utils.debugLine display, inc.from, inc.to, "#66F"
+    if clipped = @debug.clipped
+      Utils.debugLine display, clipped[0], clipped[1], "#FF0"
     if contacts = @debug.contacts
       for contact in contacts
         Utils.debugContact display, contact, "#0F0"
@@ -245,7 +247,7 @@ window.PolygonalBody = class PolygonalBody
     minAxis    = null
     minOverlap = Infinity
 
-    for axis in @perpendicularAxesFacing(other)
+    for axis in @perpendicularAxes()
       us = @projectionInterval axis
       them = other.projectionInterval axis
       overlap = Utils.intervalOverlap us, them
@@ -254,16 +256,20 @@ window.PolygonalBody = class PolygonalBody
         minOverlap = overlap
         minAxis = axis
 
-    for axis in other.perpendicularAxesFacing(this)
+    for axis in other.perpendicularAxes()
       us = @projectionInterval axis
       them = other.projectionInterval axis
       overlap = Utils.intervalOverlap us, them
       return false unless overlap > 0
       if overlap < minOverlap
         minOverlap = overlap
-        minAxis = Vec.invert axis # separation axis is always A->B
+        minAxis = axis
 
-    minAxis
+    dir = Vec.sub other.position, @position
+    if Vec.dotProduct(dir, minAxis) < 0
+      minAxis = Vec.invert minAxis # separation axis is always A->B
+
+    @debug.minAxis = minAxis
 
   projectionInterval: (axis) ->
     Utils.projectionInterval @vertices(), axis
@@ -271,10 +277,6 @@ window.PolygonalBody = class PolygonalBody
   perpendicularAxes: ->
     for pair in Utils.pairs @vertices()
       Vec.perpendicularNormal Vec.sub pair[1], pair[0]
-
-  perpendicularAxesFacing: (other) ->
-    dir = Vec.sub other.position, @position
-    (axis for axis in @perpendicularAxes() when Vec.dotProduct(axis, dir) > 0)
 
   calculatePhysicalProperties: ->
     vertices = @vertices()
