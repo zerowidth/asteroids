@@ -353,7 +353,7 @@ window.PolygonalBody = class PolygonalBody
     rotationChange
 
 class Contact
-  restitution: 0.3 # TODO calculate this from objects involved
+  restitution: 0.2 # TODO calculate this from objects involved
 
   constructor: (@from, @to, @position, @normal, @depth, restitution=null) ->
     @restitution = restitution if restitution?

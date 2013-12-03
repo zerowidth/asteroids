@@ -32,7 +32,7 @@ window.Utils = Utils =
     stats = new Stats()
     stats.setMode(0) # 0: fps, 1: ms
     stats.domElement.style.position = 'absolute'
-    stats.domElement.style.right = '0px'
+    stats.domElement.style.left = '0px'
     stats.domElement.style.top = '0px'
     document.body.appendChild( stats.domElement )
     stats
@@ -100,12 +100,15 @@ window.Utils = Utils =
     end   = if aMax > bMax then bMax else aMax
     end - start
 
-  random: Math.random
-  # Deterministic awful pseudo-RNG for easy testing
-  # seed: 15
-  # random: ->
-  #   x = Math.sin(@seed++) * 10000
-  #   x - Math.floor(x)
+  # Deterministic awful but effective pseudo-RNG for easy testing. This should be
+  # replaced with something better!
+  seed: Math.floor(Math.random * 100000)
+  random: ->
+    x = Math.sin(@seed++) * 10000
+    x - Math.floor(x)
+
+  # To enable unseeded randomness again:
+  # random: Math.random
 
   randomInt: (min, max) ->
     min + Math.floor(@random() * (max - min))

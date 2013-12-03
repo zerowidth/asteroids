@@ -1,14 +1,19 @@
 window.World = class World
-  constructor: (element, scale=50, paused=false) ->
+  constructor: (element, opts={}) ->
+    @scale          = opts.scale or 50
+    @speedFactor    = opts.speedFactor or 1
+    @paused         = opts.paused or false
+    @pauseEveryStep = opts.pauseEveryStep or false
+    @pauseOnContact = opts.pauseOnContact or false
+
     @ctx = Sketch.create
       element: document.getElementById element
       retina: true
     @stats = Utils.drawStats()
-    @display = new Display @ctx, [0, 0], scale
+    @display = new Display @ctx, [0, 0], @scale
 
     @bodies = []
     @slow = false
-    @paused = paused
 
     _.extend @ctx,
       update: @update
@@ -28,12 +33,15 @@ window.World = class World
     @bodies.push body
 
   removeBody: (body) ->
-    @bodies = _without(@bodies, body)
+    @bodies = _.without(@bodies, body)
+
+  removeAllBodies: ->
+    @bodies = []
 
   update: =>
     return if @paused
 
-    dt = @ctx.dt / 1000
+    dt = @ctx.dt / 1000 * @speedFactor
     dt = dt / 5 if @slow
 
     for body in @bodies
@@ -64,7 +72,9 @@ window.World = class World
         break if worstSepV > 0
         worst.resolveVelocity dt
 
-      # @paused = true
+      @paused = true if @pauseOnContact
+
+    @paused = true if @pauseEveryStep
 
   # Naive version: returns all unique pairs of bodies with overlapping AABB's.
   # TODO: use AABB to build quadtree?
