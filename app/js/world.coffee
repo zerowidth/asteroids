@@ -134,6 +134,56 @@ window.WrappedWorld = class WrappedWorld extends World
     super()
     @display.drawBounds()
 
+  # Returns an array of arrays containing:
+  # [ body A, body B, offset x, offset y ]
+  # where the offset applies to body A for the sake of contact generation.
+  broadPhaseCollisions: ->
+    return [] if @bodies.length < 2
+    pairs = []
+    for i in [0..(@bodies.length-2)]
+      for j in [(i+1)..(@bodies.length-1)]
+        a = @bodies[i]
+        b = @bodies[j]
+
+        # Compare each pair of bodies: if their AABBs overlap each other either
+        # directly or over a wrapped edge, check for contact.
+
+        xOffsets = [0]
+        yOffsets = [0]
+        aBox = a.aabb()
+        bBox = b.aabb()
+
+        xOffsets.push  @sizeX if aBox[0][0] < 0      or bBox[1][0] > @sizeX
+        xOffsets.push -@sizeX if aBox[1][0] > @sizeX or bBox[0][0] < 0
+        yOffsets.push -@sizeY if aBox[1][1] > @sizeY or bBox[0][1] < 0
+        yOffsets.push  @sizeY if aBox[0][1] < 0      or bBox[1][1] > @sizeY
+
+        for x in xOffsets
+          for y in yOffsets
+            if Utils.aabbOverlap a.aabb(), b.aabb(), [x, y]
+              pairs.push [a, b, x, y]
+    pairs
+
+  narrowPhaseCollisions: (pairs) ->
+    contacts = []
+    for [a, b, offsetX, offsetY] in pairs
+      a.position = Vec.add a.position, [offsetX, offsetY]
+      for contact in a.contactPoints b
+        contact.offset = [offsetX, offsetY]
+        contacts.push contact
+      a.position = Vec.sub a.position, [offsetX, offsetY]
+    contacts
+
+  resolveInterpenetration: (contact) ->
+    contact.from.position = Vec.add contact.from.position, contact.offset
+    contact.resolveInterpenetration()
+    contact.from.position = Vec.sub contact.from.position, contact.offset
+
+  resolveVelocity: (contact, dt) ->
+    contact.from.position = Vec.add contact.from.position, contact.offset
+    contact.resolveVelocity dt
+    contact.from.position = Vec.sub contact.from.position, contact.offset
+
   constrainBody: (body) ->
     body.position = @constrainPosition body.position
     body
