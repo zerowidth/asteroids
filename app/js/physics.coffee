@@ -70,9 +70,6 @@ window.PolygonalBody = class PolygonalBody
   # polygonal body.
   vertices: -> []
 
-  # Public: reset any per-frame caches, e.g. vertices, forces, etc.
-  reset: ->
-
   # Public: return an axis-aligned bounding box: [[xmin, ymin], [xmax, ymax]]
   aabb: ->
     vertices = @vertices()

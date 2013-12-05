@@ -51,7 +51,6 @@ window.World = class World
     dt = dt / 5 if @slow
 
     for body in @bodies
-      body.reset()
       body.resetDebug()
       body.integrate dt
 

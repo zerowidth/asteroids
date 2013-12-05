@@ -7,13 +7,8 @@ window.Rectangle = class Rectangle extends PolygonalBody
 
     super opts
 
-  reset: ->
-    # TODO only reset if position/velocity/orientation have changed
-    @cachedVertices = null
-
   vertices: ->
-    @cachedVertices ?=
-      (Vec.transform offset, @position, @orientation for offset in @offsets)
+    (Vec.transform offset, @position, @orientation for offset in @offsets)
 
   # the regular polygonal version works, but this is easier:
   calculateInverseMoment: (b, h) ->
@@ -41,11 +36,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
     @recalculateCentroid() unless opts.position and opts.vertices
 
   vertices: ->
-    @cachedVertices ?=
-      (Vec.transform point, @position, @orientation for point in @points)
-
-  reset: ->
-    @cachedVertices = null
+    (Vec.transform point, @position, @orientation for point in @points)
 
   # Internal: generate a somewhat randomized asteroid shape.
   generatePoints: (radius) ->
