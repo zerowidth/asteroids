@@ -27,7 +27,8 @@ class Simulation
     for controller in @gui.__controllers
       controller.updateDisplay()
 
-    @generateAsteroids()
+    @generateBodies()
+    # @generateAsteroids()
 
   # Internal: set up a GUI controller for the simulation
   initializeGUI: ->
@@ -50,10 +51,10 @@ class Simulation
   generateAsteroids: ->
     @asteroids = []
 
-    numAsteroids = 10
-    avgDistance = 3
+    numAsteroids = 20
+    avgDistance = 6
     deltaDistance = 2
-    avgSize = 1
+    avgSize = 1.5
     sizeDelta = 1
 
     for theta in [0...numAsteroids]

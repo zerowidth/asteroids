@@ -67,14 +67,38 @@ window.WrappedDisplay = class WrappedDisplay extends Display
   # sizeY  - size of display (world, not pixels)
   # scale  - pixels per meter
   constructor: (@ctx, @center, @sizeX, @sizeY, @scale) ->
+    @offset = [0, 0]
+
+  # Internal: perform drawing operations with given x/y offsets (by quadrant)
+  #
+  # x, y - -1, 0, 1 offset multipliers
+  # fn   - a function to call with the given offset
+  withOffset: (x, y, fn) ->
+    @offset = [x * @sizeX * @scale, y * @sizeY * @scale]
+    # @offset = [x * @sizeX, y * @sizeY]
+    fn.call this
+    @offset = [0, 0]
 
   transform: (points...) ->
     dx = @ctx.width/2
     dy = @ctx.height/2
-    ([(x - @center[0]) * @scale + dx, (-y + @center[1]) * @scale + dy ] for [x, y] in points)
+    for [x, y] in points
+      [
+        (x - @center[0]) * @scale + dx + @offset[0],
+        (-y + @center[1]) * @scale + dy + @offset[1]
+      ]
 
   drawPolygon: (vertices, color) ->
     super vertices, color
+
+    if _.some(vertices, (v) => v[0] < 0)
+      @withOffset  1,  0, -> super vertices, color
+    if _.some(vertices, (v) => v[0] > @sizeX)
+      @withOffset -1,  0, -> super vertices, color
+    if _.some(vertices, (v) => v[1] < 0)
+      @withOffset  0, -1, -> super vertices, color
+    if _.some(vertices, (v) => v[1] > @sizeY)
+      @withOffset  0,  1, -> super vertices, color
 
   drawCircle: (center, radius, color) ->
     super center, radius, color

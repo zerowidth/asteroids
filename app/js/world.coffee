@@ -134,7 +134,7 @@ window.WrappedWorld = class WrappedWorld extends World
     body
 
   constrainPosition: ([x,y]) ->
-    x += @sizeX while x < 0
-    y += @sizeY while y < 0
+    x += @sizeX while x <= 0
+    y += @sizeY while y <= 0
     [x % @sizeX, y % @sizeY]
 
