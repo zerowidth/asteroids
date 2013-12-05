@@ -28,8 +28,8 @@ class Simulation
     for controller in @gui.__controllers
       controller.updateDisplay()
 
-    @generateBodies()
-    # @generateAsteroids()
+    # @generateBodies()
+    @generateAsteroids()
 
   setNewSeed: ->
     @seed = Math.floor(Math.random() * 10000000)
@@ -56,9 +56,9 @@ class Simulation
     @asteroids = []
 
     numAsteroids = 20
-    avgDistance = 6
-    deltaDistance = 2
-    avgSize = 1.5
+    avgDistance = 4
+    deltaDistance = 3
+    avgSize = 1.2
     sizeDelta = 1
 
     for theta in [0...numAsteroids]
@@ -75,7 +75,8 @@ class Simulation
 
       @asteroids.push new Asteroid s,
         position: Vec.add [5, 5], position
-        velocity: Vec.scale direction, Utils.random() * 3
+        # velocity: Vec.scale direction, Utils.random() * 3
+        velocity: [Utils.random() * 3 - 1.5, Utils.random() * 3 - 1.5]
         angularVelocity: (Math.PI * 2 * Utils.random() - Math.PI)
         density: 5 + 20 * density
         color: "rgba(#{color},#{color},#{color},1)"
