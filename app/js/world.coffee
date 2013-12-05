@@ -10,7 +10,7 @@ window.World = class World
       element: document.getElementById element
       retina: true
     @stats = Utils.drawStats()
-    @display = new Display @ctx, [0, 0], @scale
+    @display = new Display @ctx, @scale
 
     @bodies = []
     @slow = false
@@ -55,6 +55,8 @@ window.World = class World
       body.resetDebug()
       body.integrate dt
 
+    @postIntegrate()
+
     @contacts = @narrowPhaseCollisions @broadPhaseCollisions()
 
     if @contacts.length > 0
@@ -82,6 +84,9 @@ window.World = class World
 
     @paused = true if @pauseEveryStep
 
+  # Internal: hook for post-integration updates
+  postIntegrate: ->
+
   # Naive version: returns all unique pairs of bodies with overlapping AABB's.
   # TODO: use AABB to build quadtree?
   broadPhaseCollisions: ->
@@ -107,4 +112,29 @@ window.World = class World
       body.drawDebug @display, @debugSettings
     @stats.update()
 
+window.WrappedWorld = class WrappedWorld extends World
+
+  constructor: (element, @sizeX, @sizeY, opts={}) ->
+    super element, opts
+    @display = new WrappedDisplay @ctx, [@sizeX/2, @sizeY/2], @sizeX, @sizeY, @scale
+
+  addBody: (body) ->
+    super @constrainBody body
+
+  postIntegrate: ->
+    for body in @bodies
+      @constrainBody body
+
+  draw: =>
+    super()
+    @display.drawBounds()
+
+  constrainBody: (body) ->
+    body.position = @constrainPosition body.position
+    body
+
+  constrainPosition: ([x,y]) ->
+    x += @sizeX while x < 0
+    y += @sizeY while y < 0
+    [x % @sizeX, y % @sizeY]
 
