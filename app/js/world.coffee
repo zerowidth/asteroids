@@ -29,6 +29,12 @@ window.World = class World
           when 16 # shift
             @slow = false
 
+  debugSettings:
+    drawMinAxis: false
+    drawAABB: false
+    drawSAT: false
+    drawContacts: false
+
   addBody: (body) ->
     @bodies.push body
 
@@ -98,7 +104,7 @@ window.World = class World
   draw: =>
     for body in @bodies
       body.draw @display
-      body.drawDebug @display
+      body.drawDebug @display, @debugSettings
     @stats.update()
 
 

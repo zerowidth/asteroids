@@ -117,20 +117,21 @@ window.PolygonalBody = class PolygonalBody
   debug: {}
   resetDebug: -> @debug = {}
 
-  drawDebug: (display) ->
-    if minAxis = @debug.minAxis
+  drawDebug: (display, settings) ->
+    if settings.drawMinAxis and minAxis = @debug.minAxis
       Utils.debugLine display, minAxis.from, minAxis.to, "#F6F"
-    if ref = @debug.reference
-      Utils.debugLine display, ref.from, ref.to, "#F66"
-    if inc = @debug.incident
-      Utils.debugLine display, inc.from, inc.to, "#66F"
-    if clipped = @debug.clipped
-      Utils.debugLine display, clipped[0], clipped[1], "#FF0"
-    if contacts = @debug.contacts
+    if settings.drawAABB and aabb = @debug.aabb
+      Utils.debugAABB display, aabb, "#F0F", 0.5
+    if settings.drawSAT
+      if ref = @debug.reference
+        Utils.debugLine display, ref.from, ref.to, "#F66"
+      if inc = @debug.incident
+        Utils.debugLine display, inc.from, inc.to, "#66F"
+      if clipped = @debug.clipped
+        Utils.debugLine display, clipped[0], clipped[1], "#FF0"
+    if settings.drawContacts and contacts = @debug.contacts
       for contact in contacts
         Utils.debugContact display, contact, "#0F0"
-    if aabb = @debug.aabb
-      Utils.debugAABB display, aabb, "#F0F", 0.5
 
   # Calculate contact points against another polygon.
   # from http://www.codezealot.org/archives/394 &c

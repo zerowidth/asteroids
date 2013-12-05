@@ -56,7 +56,16 @@ window.go = ->
   window.simulation = new Simulation
 
   window.gui = new dat.GUI()
-  gui.add simulation, 'seed'
-  gui.add simulation, 'reset'
+  gui.add simulation, "seed"
+  gui.add simulation, "reset"
 
+  # gui.add(simulation.world, "paused").listen()
+  gui.add simulation.world, "speedFactor", 0.1, 10
 
+  debug = gui.addFolder "debug"
+  debug.add simulation.world, "pauseEveryStep"
+  debug.add simulation.world, "pauseOnContact"
+  debug.add simulation.world.debugSettings, "drawMinAxis"
+  debug.add simulation.world.debugSettings, "drawAABB"
+  debug.add simulation.world.debugSettings, "drawSAT"
+  debug.add simulation.world.debugSettings, "drawContacts"
