@@ -1,13 +1,18 @@
 class Simulation
 
   # Settings:
-  seed: Math.floor(Math.random() * 100000)
+  seed: 12345
 
   constructor: ->
     @world = new World "display",
       scale: 50
       # paused: true
 
+    @randomize()
+
+  # Public: set a new random seed and reset the simulation
+  randomize: ->
+    @seed = Math.floor(Math.random() * 10000000)
     @reset()
 
   # Public: reset the simulation, start over
@@ -15,7 +20,7 @@ class Simulation
     # @world.paused = true
     @world.removeAllBodies()
 
-    Utils.seed = @seed
+    Utils.srand @seed
 
     @generateAsteroids()
 
@@ -56,7 +61,8 @@ window.go = ->
   window.simulation = new Simulation
 
   window.gui = new dat.GUI()
-  gui.add simulation, "seed"
+  gui.add(simulation, "seed").listen()
+  gui.add simulation, "randomize"
   gui.add simulation, "reset"
 
   # gui.add(simulation.world, "paused").listen()
