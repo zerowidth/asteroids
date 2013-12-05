@@ -81,7 +81,34 @@ class Simulation
 
     @world.addBody a for a in @asteroids
 
-    window.a = @asteroids[0]
-    window.b = @asteroids[1]
+  generateBodies: ->
+    @asteroids = []
+
+    @asteroids.push new Asteroid 1,
+      position: [1, 9.6]
+      velocity: [0, 0]
+      density: 5
+
+    @asteroids.push new Asteroid 1,
+      position: [1, 1]
+      velocity: [0, -1]
+      density: 5
+
+    @asteroids.push new Asteroid 1,
+      position: [4.5, 0.1]
+      velocity: [1, 0]
+      density: 5
+
+    @asteroids.push new Asteroid 1,
+      position: [5.4, 9.9]
+      velocity: [-1, 0]
+      density: 5
+
+    [window.a, window.b, window.c, window.d] = @asteroids
+
+    # @world.addBody a for a in @asteroids
+    @world.addBody a
+    @world.addBody b
+
 
 window.go = -> window.simulation = new Simulation
