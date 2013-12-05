@@ -90,7 +90,15 @@ window.Utils = Utils =
     values = (Vec.dotProduct point, axis for point in points)
     [Math.min(values...), Math.max(values...)]
 
-  aabbOverlap: ([[ax1, ay1], [ax2, ay2]], [[bx1, by1], [bx2, by2]]) ->
+  aabbOverlap: (aAABB, bAABB, offset=[0,0]) ->
+    [[ax1, ay1], [ax2, ay2]] = aAABB
+    [[bx1, by1], [bx2, by2]] = bAABB
+    [xOffset, yOffset] = offset
+    ax1 += xOffset
+    ax2 += xOffset
+    ay1 += yOffset
+    ay2 += yOffset
+
     @intervalOverlap([ax1, ax2], [bx1, bx2]) > 0 and
       @intervalOverlap([ay1, ay2], [by1, by2]) > 0
 
