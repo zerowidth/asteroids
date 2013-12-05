@@ -119,7 +119,7 @@ window.PolygonalBody = class PolygonalBody
 
   drawDebug: (display) ->
     if minAxis = @debug.minAxis
-      Utils.debugLine display, [0,0], minAxis, "#F6F"
+      Utils.debugLine display, minAxis.from, minAxis.to, "#F6F"
     if ref = @debug.reference
       Utils.debugLine display, ref.from, ref.to, "#F66"
     if inc = @debug.incident
@@ -269,7 +269,8 @@ window.PolygonalBody = class PolygonalBody
     if Vec.dotProduct(dir, minAxis) < 0
       minAxis = Vec.invert minAxis # separation axis is always A->B
 
-    @debug.minAxis = minAxis
+    @debug.minAxis = from: @position, to: Vec.add @position, minAxis
+    minAxis
 
   projectionInterval: (axis) ->
     Utils.projectionInterval @vertices(), axis
