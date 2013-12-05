@@ -65,7 +65,7 @@ window.World = class World
           if not worst or contact.depth > worst.depth
             worst = contact
         break if worst.depth <= 0
-        worst.resolveInterpenetration()
+        @resolveInterpenetration worst
 
       for n in [1..@contacts.length*2]
         worst = null
@@ -77,11 +77,17 @@ window.World = class World
             worstSepV = sepV
 
         break if worstSepV > 0
-        worst.resolveVelocity dt
+        @resolveVelocity worst, dt
 
       @paused = true if @pauseOnContact
 
     @paused = true if @pauseEveryStep
+
+  resolveInterpenetration: (contact) ->
+    contact.resolveInterpenetration()
+
+  resolveVelocity: (contact, dt) ->
+    contact.resolveVelocity dt
 
   # Internal: hook for post-integration updates
   postIntegrate: ->
