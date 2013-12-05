@@ -1,7 +1,7 @@
 class Simulation
 
   # Settings:
-  seed: 12345
+  seed: null
 
   constructor: ->
     @world = new WrappedWorld "display", 10, 10,
@@ -10,7 +10,10 @@ class Simulation
 
     @initializeGUI()
 
-    @randomize()
+    if @seed
+      @reset()
+    else
+      @randomize()
 
   # Public: set a new random seed and reset the simulation
   randomize: ->
