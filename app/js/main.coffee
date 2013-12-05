@@ -8,16 +8,14 @@ class Simulation
       scale: 50
       # paused: true
 
+    @setNewSeed() unless @seed
     @initializeGUI()
 
-    if @seed
-      @reset()
-    else
-      @randomize()
+    @reset()
 
   # Public: set a new random seed and reset the simulation
   randomize: ->
-    @seed = Math.floor(Math.random() * 10000000)
+    @setNewSeed()
     @reset()
 
   # Public: reset the simulation, start over
@@ -32,6 +30,9 @@ class Simulation
 
     @generateBodies()
     # @generateAsteroids()
+
+  setNewSeed: ->
+    @seed = Math.floor(Math.random() * 10000000)
 
   # Internal: set up a GUI controller for the simulation
   initializeGUI: ->
