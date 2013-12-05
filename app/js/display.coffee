@@ -89,16 +89,16 @@ window.WrappedDisplay = class WrappedDisplay extends Display
       ]
 
   drawPolygon: (vertices, color) ->
-    super vertices, color
+    xOffsets = [0]
+    yOffsets = [0]
+    xOffsets.push  1 if _.some(vertices, (v) => v[0] < 0)
+    xOffsets.push -1 if _.some(vertices, (v) => v[0] > @sizeX)
+    yOffsets.push  1 if _.some(vertices, (v) => v[1] > @sizeY)
+    yOffsets.push -1 if _.some(vertices, (v) => v[1] < 0)
 
-    if _.some(vertices, (v) => v[0] < 0)
-      @withOffset  1,  0, -> super vertices, color
-    if _.some(vertices, (v) => v[0] > @sizeX)
-      @withOffset -1,  0, -> super vertices, color
-    if _.some(vertices, (v) => v[1] < 0)
-      @withOffset  0, -1, -> super vertices, color
-    if _.some(vertices, (v) => v[1] > @sizeY)
-      @withOffset  0,  1, -> super vertices, color
+    for x in xOffsets
+      for y in yOffsets
+        @withOffset x, y, -> super vertices, color
 
   drawCircle: (center, radius, color) ->
     super center, radius, color
