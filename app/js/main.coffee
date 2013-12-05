@@ -8,6 +8,8 @@ class Simulation
       scale: 50
       # paused: true
 
+    @initializeGUI()
+
     @randomize()
 
   # Public: set a new random seed and reset the simulation
@@ -22,7 +24,28 @@ class Simulation
 
     Utils.srand @seed
 
+    for controller in @gui.__controllers
+      controller.updateDisplay()
+
     @generateAsteroids()
+
+  # Internal: set up a GUI controller for the simulation
+  initializeGUI: ->
+    @gui = new dat.GUI()
+    seed = @gui.add(this, "seed")
+    @gui.add this, "randomize"
+    @gui.add this, "reset"
+
+    # @gui.add(@world, "paused").listen()
+    @gui.add @world, "speedFactor", 0.1, 10
+
+    debug = @gui.addFolder "debug"
+    debug.add @world, "pauseEveryStep"
+    debug.add @world, "pauseOnContact"
+    debug.add @world.debugSettings, "drawMinAxis"
+    debug.add @world.debugSettings, "drawAABB"
+    debug.add @world.debugSettings, "drawSAT"
+    debug.add @world.debugSettings, "drawContacts"
 
   generateAsteroids: ->
     @asteroids = []
@@ -57,21 +80,4 @@ class Simulation
     window.a = @asteroids[0]
     window.b = @asteroids[1]
 
-window.go = ->
-  window.simulation = new Simulation
-
-  window.gui = new dat.GUI()
-  gui.add(simulation, "seed").listen()
-  gui.add simulation, "randomize"
-  gui.add simulation, "reset"
-
-  # gui.add(simulation.world, "paused").listen()
-  gui.add simulation.world, "speedFactor", 0.1, 10
-
-  debug = gui.addFolder "debug"
-  debug.add simulation.world, "pauseEveryStep"
-  debug.add simulation.world, "pauseOnContact"
-  debug.add simulation.world.debugSettings, "drawMinAxis"
-  debug.add simulation.world.debugSettings, "drawAABB"
-  debug.add simulation.world.debugSettings, "drawSAT"
-  debug.add simulation.world.debugSettings, "drawContacts"
+window.go = -> window.simulation = new Simulation
