@@ -91,15 +91,32 @@ window.WrappedDisplay = class WrappedDisplay extends Display
     yOffsets.push  1 if _.some(vertices, (v) => v[1] > @sizeY)
     yOffsets.push -1 if _.some(vertices, (v) => v[1] < 0)
 
-    for x in xOffsets
-      for y in yOffsets
-        @withOffset x, y, => super vertices, color, alpha
+    @drawClipped =>
+      for x in xOffsets
+        for y in yOffsets
+          @withOffset x, y, => super vertices, color, alpha
+
+  bounds: ->
+    @transform [ [0,0], [@sizeX, 0], [@sizeX, @sizeY], [0, @sizeY], [0,0] ]...
+
+  drawClipped: (fn) ->
+    @ctx.save()
+
+    points = @bounds()
+    @ctx.beginPath()
+    @ctx.moveTo points[0]...
+    @ctx.lineTo points[i]... for i in [1..4]
+    @ctx.clip()
+
+    fn()
+
+    @ctx.restore()
 
   # Public: draw the bounds of this display for debugging
   drawBounds: (color="#FFF", alpha=0.2) ->
     @ctx.save()
 
-    points = @transform [ [0,0], [@sizeX, 0], [@sizeX, @sizeY], [0, @sizeY], [0,0] ]...
+    points = @bounds()
 
     @ctx.globalAlpha = alpha if alpha < 1
     @ctx.lineWidth = 1
