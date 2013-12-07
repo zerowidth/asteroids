@@ -4,7 +4,7 @@ class Simulation
   seed: null
 
   constructor: ->
-    @world = new WrappedWorld "display", 10, 10,
+    @world = new WrappedWorld "display", 16, 10,
       scale: 50
       # paused: true
 
@@ -76,8 +76,8 @@ class Simulation
       @asteroids.push new Asteroid s,
         position: Vec.add [5, 5], position
         # velocity: Vec.scale direction, Utils.random() * 3
-        velocity: [Utils.random() * 3 - 1.5, Utils.random() * 3 - 1.5]
-        angularVelocity: (Math.PI * 2 * Utils.random() - Math.PI)
+        velocity: [Utils.random() * 0.5 - 0.25, Utils.random() * 0.5 - 0.25]
+        angularVelocity: (Math.PI * 2 * Utils.random() - Math.PI) * 0.5
         density: 5 + 20 * density
         color: "rgba(#{color},#{color},#{color},1)"
 
