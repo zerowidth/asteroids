@@ -74,7 +74,7 @@ class Simulation
       color = Math.floor(192 - density * 128)
 
       @asteroids.push new Asteroid s,
-        position: Vec.add [5, 5], position
+        position: Vec.add @world.center(), position
         # velocity: Vec.scale direction, Utils.random() * 3
         velocity: [Utils.random() * 0.5 - 0.25, Utils.random() * 0.5 - 0.25]
         angularVelocity: (Math.PI * 2 * Utils.random() - Math.PI) * 0.5

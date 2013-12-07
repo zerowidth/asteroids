@@ -45,6 +45,8 @@ window.World = class World
   removeAllBodies: ->
     @bodies = []
 
+  center: -> [@sizeX/2, @sizeY/2]
+
   update: =>
     return if @paused
 
@@ -140,7 +142,7 @@ window.WrappedWorld = class WrappedWorld extends World
 
   constructor: (element, @sizeX, @sizeY, opts={}) ->
     super element, opts
-    @display = new WrappedDisplay @ctx, [@sizeX/2, @sizeY/2], @sizeX, @sizeY, @scale
+    @display = new WrappedDisplay @ctx, @center(), @sizeX, @sizeY, @scale
 
   addBody: (body) ->
     super @constrainBody body
