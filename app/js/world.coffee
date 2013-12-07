@@ -62,7 +62,7 @@ window.World = class World
 
     for body in @bodies
       body.resetDebug()
-      body.integrate dt
+      body.integrate dt, @keyboard
 
     @postIntegrate()
 
@@ -93,18 +93,6 @@ window.World = class World
 
     @paused = true if @pauseEveryStep
 
-    # move = [0, 0]
-    # if @keyboard.left
-    #   move[0] = -1
-    # else if @keyboard.right
-    #   move[0] = 1
-
-    # if @keyboard.up
-    #   move[1] = 1
-    # else if @keyboard.down
-    #   move[1] = -1
-
-    # delta = Vec.invert Vec.scale move, dt * 5
     if @tracking
       # camera moves 10% toward the target
       distance = Vec.sub @tracking.position, @camera

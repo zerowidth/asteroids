@@ -75,11 +75,21 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
 window.Ship = class Ship extends PolygonalBody
 
+  # Maneuvering capabilities as a multiplier of mass.
+  # Used to calculate accelerations from keyboard input.
+  thrust: 3
+  turn: 6
+
   # Public: Create a new Ship.
   #
   # size - how big the ship is (give or take)
   # opts - a dictionary containing, the standard PolygonalBody options and:
+  #        thrust: how much force the engine has as multiplier of mass
+  #        turn: how much torque the thrusters have as a multiplier of moment
   constructor: (size, opts = {}) ->
+    @thrust = opts.thrust if opts.thrust
+    @turn = opts.turn if opts.turn
+
     offsets = [ [1, 0], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
     @points = (Vec.scale offset, size for offset in offsets)
 
@@ -89,3 +99,19 @@ window.Ship = class Ship extends PolygonalBody
 
   vertices: ->
     (Vec.transform point, @position, @orientation for point in @points)
+
+  integrate: (dt, keyboard) ->
+
+    if keyboard.up
+      @acceleration = Vec.scale @orientation, @thrust
+    else
+      @acceleration = [0, 0]
+
+    if keyboard.left
+      @angularAccel = @turn
+    else if keyboard.right
+      @angularAccel = -@turn
+    else
+      @angularAccel = 0
+
+    super dt, keyboard

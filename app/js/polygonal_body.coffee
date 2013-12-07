@@ -85,7 +85,7 @@ window.PolygonalBody = class PolygonalBody
 
     @debug.aabb = [[xmin, ymin], [xmax, ymax]]
 
-  integrate: (dt) ->
+  integrate: (dt, keyboard) ->
     return if dt <= 0
 
     if @inverseMass > 0
