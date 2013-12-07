@@ -29,7 +29,6 @@ class Simulation
     for controller in @gui.__controllers
       controller.updateDisplay()
 
-    # @generateBodies()
     @generateAsteroids()
     @createShip()
 
@@ -58,10 +57,12 @@ class Simulation
     @asteroids = []
 
     numAsteroids = 20
-    avgDistance = 4
+    avgDistance = 3
     deltaDistance = 3
     avgSize = 1.2
     sizeDelta = 1
+    deltaVelocity = 5
+    deltaTheta = Math.PI
 
     for theta in [0...numAsteroids]
       angle = theta * Math.PI * 2 / numAsteroids
@@ -77,9 +78,11 @@ class Simulation
 
       @asteroids.push new Asteroid s,
         position: Vec.add @world.center(), position
-        # velocity: Vec.scale direction, Utils.random() * 3
-        velocity: [Utils.random() * 0.5 - 0.25, Utils.random() * 0.5 - 0.25]
-        angularVelocity: (Math.PI * 2 * Utils.random() - Math.PI) * 0.5
+        velocity: [
+          Utils.random() * deltaVelocity - deltaVelocity / 2,
+          Utils.random() * deltaVelocity - deltaVelocity / 2
+        ]
+        angularVelocity: deltaTheta * Utils.random() - deltaTheta / 2
         density: 5 + 20 * density
         color: "rgba(#{color},#{color},#{color},1)"
 
@@ -94,36 +97,6 @@ class Simulation
 
     @world.addBody @ship
     @world.track @ship
-
-  generateBodies: ->
-    @asteroids = []
-
-    @asteroids.push new Asteroid 1,
-      position: [1, 9.6]
-      velocity: [0, 0]
-      density: 5
-
-    @asteroids.push new Asteroid 1,
-      position: [1, 1]
-      velocity: [0, -1]
-      density: 5
-
-    @asteroids.push new Asteroid 1,
-      position: [4.5, 0.1]
-      velocity: [1, 0]
-      density: 5
-
-    @asteroids.push new Asteroid 1,
-      position: [5.4, 9.9]
-      velocity: [-1, 0]
-      density: 5
-
-    [window.a, window.b, window.c, window.d] = @asteroids
-
-    # @world.addBody a for a in @asteroids
-    @world.addBody a
-    @world.addBody b
-
 
 window.go = -> window.simulation = new Simulation
 
