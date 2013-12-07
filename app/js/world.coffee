@@ -35,6 +35,7 @@ window.World = class World
     drawAABB: false
     drawSAT: false
     drawContacts: false
+    drawCamera: false
 
   addBody: (body) ->
     @bodies.push body
@@ -46,6 +47,10 @@ window.World = class World
     @bodies = []
 
   track: (@tracking) ->
+    if @tracking
+      @camera = @tracking.position
+    else
+      @camera = @center()
 
   center: -> [@sizeX/2, @sizeY/2]
 
@@ -101,9 +106,14 @@ window.World = class World
 
     # delta = Vec.invert Vec.scale move, dt * 5
     if @tracking
-      delta = Vec.sub @center(), @tracking.position
+      # camera moves 10% toward the target
+      distance = Vec.sub @tracking.position, @camera
+      @camera = Vec.add @camera, Vec.scale distance, 0.1
+
+      delta = Vec.sub @center(), @camera
       for body in @bodies
         body.position = Vec.add body.position, delta
+      @camera = Vec.add @camera, delta
 
   resolveInterpenetration: (contact) ->
     contact.resolveInterpenetration()
@@ -137,6 +147,9 @@ window.World = class World
     for body in @bodies
       body.draw @display
       body.drawDebug @display, @debugSettings
+
+    if @tracking and @debugSettings.drawCamera
+      @display.drawCircle @camera, 3, "#0FF"
 
     @stats.update()
 

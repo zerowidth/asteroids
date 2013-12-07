@@ -52,6 +52,7 @@ class Simulation
     debug.add @world.debugSettings, "drawAABB"
     debug.add @world.debugSettings, "drawSAT"
     debug.add @world.debugSettings, "drawContacts"
+    debug.add @world.debugSettings, "drawCamera"
 
   generateAsteroids: ->
     @asteroids = []
