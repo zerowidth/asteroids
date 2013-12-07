@@ -1,12 +1,17 @@
 window.Display = class Display
   # ctx    - the canvas context
+  # center - [x, y] (world) center of display
   # scale  - pixels per unit (world)
-  constructor: (@ctx, @scale) ->
+  constructor: (@ctx, @center, @scale) ->
 
   transform: (points...) ->
     dx = @ctx.width/2
     dy = @ctx.height/2
-    ([x * @scale + dx, -y * @scale + dy ] for [x, y] in points)
+    for [x, y] in points
+      [
+        (x - @center[0]) * @scale + dx + @offset[0],
+        (-y + @center[1]) * @scale + dy + @offset[1]
+      ]
 
   drawPolygon: (vertices, color) ->
     vertices = @transform vertices...
@@ -75,18 +80,8 @@ window.WrappedDisplay = class WrappedDisplay extends Display
   # fn   - a function to call with the given offset
   withOffset: (x, y, fn) ->
     @offset = [x * @sizeX * @scale, y * @sizeY * @scale]
-    # @offset = [x * @sizeX, y * @sizeY]
-    fn.call this
+    fn()
     @offset = [0, 0]
-
-  transform: (points...) ->
-    dx = @ctx.width/2
-    dy = @ctx.height/2
-    for [x, y] in points
-      [
-        (x - @center[0]) * @scale + dx + @offset[0],
-        (-y + @center[1]) * @scale + dy + @offset[1]
-      ]
 
   drawPolygon: (vertices, color) ->
     xOffsets = [0]
@@ -98,13 +93,7 @@ window.WrappedDisplay = class WrappedDisplay extends Display
 
     for x in xOffsets
       for y in yOffsets
-        @withOffset x, y, -> super vertices, color
-
-  drawCircle: (center, radius, color) ->
-    super center, radius, color
-
-  drawLine: (from, to, width, color, alpha=1) ->
-    super from, to, width, color, alpha
+        @withOffset x, y, => super vertices, color
 
   # Public: draw the bounds of this display for debugging
   drawBounds: (color="#FFF", alpha=0.2) ->

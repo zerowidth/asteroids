@@ -6,6 +6,8 @@ window.World = class World
     @pauseEveryStep = opts.pauseEveryStep or false
     @pauseOnContact = opts.pauseOnContact or false
 
+    @keyboard = new KeyboardControls
+
     @ctx = Sketch.create
       element: document.getElementById element
       retina: true
@@ -19,15 +21,14 @@ window.World = class World
       update: @update
       draw: @draw
       keydown: (e) =>
-        switch e.keyCode
-          when 16 # shift
-            @slow = true
+        @keyboard.keydown e
+        @slow = @keyboard.shift
       keyup: (e) =>
+        @keyboard.keyup e
+        @slow = @keyboard.shift
         switch e.keyCode
           when 32 # space
             @paused = !@paused
-          when 16 # shift
-            @slow = false
 
   debugSettings:
     drawMinAxis: false
@@ -83,6 +84,21 @@ window.World = class World
 
     @paused = true if @pauseEveryStep
 
+    move = [0, 0]
+    if @keyboard.left
+      move[0] = -1
+    else if @keyboard.right
+      move[0] = 1
+
+    if @keyboard.up
+      move[1] = 1
+    else if @keyboard.down
+      move[1] = -1
+
+    delta = Vec.invert Vec.scale move, dt * 5
+    for body in @bodies
+      body.position = Vec.add body.position, delta
+
   resolveInterpenetration: (contact) ->
     contact.resolveInterpenetration()
 
@@ -115,6 +131,9 @@ window.World = class World
     for body in @bodies
       body.draw @display
       body.drawDebug @display, @debugSettings
+
+    @display.drawCircle @display.center, 5, "#0F0"
+
     @stats.update()
 
 window.WrappedWorld = class WrappedWorld extends World
