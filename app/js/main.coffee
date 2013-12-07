@@ -29,8 +29,7 @@ class Simulation
     for controller in @gui.__controllers
       controller.updateDisplay()
 
-    @generateAsteroids()
-    @createShip()
+    @generateBodies()
 
   setNewSeed: ->
     @seed = Math.floor(Math.random() * 10000000)
@@ -54,7 +53,7 @@ class Simulation
     debug.add @world.debugSettings, "drawContacts"
     debug.add @world.debugSettings, "drawCamera"
 
-  generateAsteroids: ->
+  generateBodies: ->
     @asteroids = []
 
     numAsteroids = 20
@@ -62,7 +61,7 @@ class Simulation
     deltaDistance = 3
     avgSize = 1.2
     sizeDelta = 1
-    deltaVelocity = 5
+    deltaVelocity = 2
     deltaTheta = Math.PI
 
     for theta in [0...numAsteroids]
@@ -89,12 +88,11 @@ class Simulation
 
     @world.addBody a for a in @asteroids
 
-  createShip: ->
     @ship = new Ship 0.3,
       color: "#8CF"
       position: @world.center()
       angle: Math.PI/2
-      density: 5
+      density: 20
 
     @world.addBody @ship
     @world.track @ship

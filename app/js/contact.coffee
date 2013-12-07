@@ -49,7 +49,7 @@ window.Contact = class Contact
     if @to
       @to.applyImpulse Vec.invert(reactionImpulse), @position
 
-    friction = 0.3 # hardcoded coefficient
+    friction = 0.4 # hardcoded coefficient
     frictionLimit = friction * Vec.magnitude(reactionImpulse)
 
     deltaV = @from.inverseMass
