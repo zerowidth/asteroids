@@ -70,6 +70,10 @@ window.PolygonalBody = class PolygonalBody
   # polygonal body.
   vertices: -> []
 
+  # Internal: transform a series of points based on position and orientation.
+  transform: (points, scale = 1) ->
+    (Vec.transform point, @position, @orientation, scale for point in points)
+
   # Public: return an axis-aligned bounding box: [[xmin, ymin], [xmax, ymax]]
   aabb: ->
     vertices = @vertices()

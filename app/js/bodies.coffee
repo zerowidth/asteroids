@@ -7,8 +7,7 @@ window.Rectangle = class Rectangle extends PolygonalBody
 
     super opts
 
-  vertices: ->
-    (Vec.transform offset, @position, @orientation for offset in @offsets)
+  vertices: -> @transform @offsets
 
   # the regular polygonal version works, but this is easier:
   calculateInverseMoment: (b, h) ->
@@ -35,8 +34,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
     # the position and vertices have been explicitly set.
     @recalculateCentroid() unless opts.position and opts.vertices
 
-  vertices: ->
-    (Vec.transform point, @position, @orientation for point in @points)
+  vertices: -> @transform @points
 
   # Internal: generate a somewhat randomized asteroid shape.
   generatePoints: (radius) ->
@@ -93,15 +91,15 @@ window.Ship = class Ship extends PolygonalBody
     @thrust = opts.thrust if opts.thrust
     @turn = opts.turn if opts.turn
 
-    offsets = [ [1, 0], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
-    @points = (Vec.scale offset, @size for offset in offsets)
+    # drawn shape is convex, so handle the physics shape separately
+    @drawOffsets = [ [1, 0], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
+    @shapeOffsets = [ [1, 0], [-0.5, 0.5], [-0.5, -0.5] ]
 
     super opts
 
     @recalculateCentroid()
 
-  vertices: ->
-    (Vec.transform point, @position, @orientation for point in @points)
+  vertices: -> @transform @shapeOffsets, @size
 
   integrate: (dt, keyboard) ->
     if keyboard.up
@@ -130,9 +128,8 @@ window.Ship = class Ship extends PolygonalBody
       x = - @flameLevel * 1.75 - 0.25
 
       offsets = [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
-      flame = (Vec.scale offset, @size for offset in offsets)
-      flame = (Vec.transform point, @position, @orientation for point in flame)
+      flame = @transform offsets, @size
 
       display.drawPolygon flame, "#FB0", 0.25 + @flameLevel * 0.5
 
-    super display
+    display.drawPolygon @transform(@drawOffsets, @size), @color
