@@ -72,3 +72,20 @@ window.Asteroid = class Asteroid extends PolygonalBody
   drawDebug: (display) ->
     super
     display.drawCircle @position, 2, "#444"
+
+window.Ship = class Ship extends PolygonalBody
+
+  # Public: Create a new Ship.
+  #
+  # size - how big the ship is (give or take)
+  # opts - a dictionary containing, the standard PolygonalBody options and:
+  constructor: (size, opts = {}) ->
+    offsets = [ [1, 0], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
+    @points = (Vec.scale offset, size for offset in offsets)
+
+    super opts
+
+    @recalculateCentroid()
+
+  vertices: ->
+    (Vec.transform point, @position, @orientation for point in @points)

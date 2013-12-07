@@ -45,6 +45,8 @@ window.World = class World
   removeAllBodies: ->
     @bodies = []
 
+  track: (@tracking) ->
+
   center: -> [@sizeX/2, @sizeY/2]
 
   update: =>
@@ -86,20 +88,22 @@ window.World = class World
 
     @paused = true if @pauseEveryStep
 
-    move = [0, 0]
-    if @keyboard.left
-      move[0] = -1
-    else if @keyboard.right
-      move[0] = 1
+    # move = [0, 0]
+    # if @keyboard.left
+    #   move[0] = -1
+    # else if @keyboard.right
+    #   move[0] = 1
 
-    if @keyboard.up
-      move[1] = 1
-    else if @keyboard.down
-      move[1] = -1
+    # if @keyboard.up
+    #   move[1] = 1
+    # else if @keyboard.down
+    #   move[1] = -1
 
-    delta = Vec.invert Vec.scale move, dt * 5
-    for body in @bodies
-      body.position = Vec.add body.position, delta
+    # delta = Vec.invert Vec.scale move, dt * 5
+    if @tracking
+      delta = Vec.sub @center(), @tracking.position
+      for body in @bodies
+        body.position = Vec.add body.position, delta
 
   resolveInterpenetration: (contact) ->
     contact.resolveInterpenetration()
@@ -133,8 +137,6 @@ window.World = class World
     for body in @bodies
       body.draw @display
       body.drawDebug @display, @debugSettings
-
-    @display.drawCircle @display.center, 5, "#0F0"
 
     @stats.update()
 
