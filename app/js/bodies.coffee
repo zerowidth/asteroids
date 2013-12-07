@@ -80,18 +80,21 @@ window.Ship = class Ship extends PolygonalBody
   thrust: 3
   turn: 6
 
+  # How much of the flame is visible (drawing)
+  flameLevel: 0
+
   # Public: Create a new Ship.
   #
   # size - how big the ship is (give or take)
   # opts - a dictionary containing, the standard PolygonalBody options and:
   #        thrust: how much force the engine has as multiplier of mass
   #        turn: how much torque the thrusters have as a multiplier of moment
-  constructor: (size, opts = {}) ->
+  constructor: (@size, opts = {}) ->
     @thrust = opts.thrust if opts.thrust
     @turn = opts.turn if opts.turn
 
     offsets = [ [1, 0], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
-    @points = (Vec.scale offset, size for offset in offsets)
+    @points = (Vec.scale offset, @size for offset in offsets)
 
     super opts
 
@@ -101,6 +104,11 @@ window.Ship = class Ship extends PolygonalBody
     (Vec.transform point, @position, @orientation for point in @points)
 
   integrate: (dt, keyboard) ->
+    if keyboard.up
+      @flameLevel = @flameLevel + (1 - @flameLevel) * 0.75
+    else
+      @flameLevel = @flameLevel - @flameLevel * 0.25
+      @flameLevel = 0 if @flameLevel < 0.05
 
     if keyboard.up
       @acceleration = Vec.scale @orientation, @thrust
@@ -115,3 +123,16 @@ window.Ship = class Ship extends PolygonalBody
       @angularAccel = 0
 
     super dt, keyboard
+
+  draw: (display) ->
+    if @flameLevel > 0
+      # tip of flame is from -1.5 to 0.25, map it onto that scale
+      x = - @flameLevel * 1.75 - 0.25
+
+      offsets = [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
+      flame = (Vec.scale offset, @size for offset in offsets)
+      flame = (Vec.transform point, @position, @orientation for point in flame)
+
+      display.drawPolygon flame, "#FB0", 0.25 + @flameLevel * 0.5
+
+    super display

@@ -13,7 +13,7 @@ window.Display = class Display
         (-y + @center[1]) * @scale + dy + @offset[1]
       ]
 
-  drawPolygon: (vertices, color) ->
+  drawPolygon: (vertices, color, alpha = 0.5) ->
     vertices = @transform vertices...
 
     @ctx.save()
@@ -24,7 +24,7 @@ window.Display = class Display
       @ctx.lineTo point...
     @ctx.lineTo vertices[0]...
 
-    @ctx.globalAlpha = 0.5
+    @ctx.globalAlpha = alpha
     @ctx.fillStyle = color
     @ctx.fill()
 
@@ -83,7 +83,7 @@ window.WrappedDisplay = class WrappedDisplay extends Display
     fn()
     @offset = [0, 0]
 
-  drawPolygon: (vertices, color) ->
+  drawPolygon: (vertices, color, alpha = 0.5) ->
     xOffsets = [0]
     yOffsets = [0]
     xOffsets.push  1 if _.some(vertices, (v) => v[0] < 0)
@@ -93,7 +93,7 @@ window.WrappedDisplay = class WrappedDisplay extends Display
 
     for x in xOffsets
       for y in yOffsets
-        @withOffset x, y, => super vertices, color
+        @withOffset x, y, => super vertices, color, alpha
 
   # Public: draw the bounds of this display for debugging
   drawBounds: (color="#FFF", alpha=0.2) ->
