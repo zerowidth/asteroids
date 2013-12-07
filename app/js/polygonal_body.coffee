@@ -43,8 +43,8 @@ window.PolygonalBody = class PolygonalBody
   #        color           - "#RRGGBB" color of the body
   #
   # Note that the vertices must be available at the time this constructor is
-  # called so that the physical properties (area, mass, moment of inertia) can
-  # be calculated.
+  # called (e.g. with super) so that the physical properties (area, mass, moment
+  # of inertia) can be calculated.
   constructor: (opts = {}) ->
     @position = opts.position if opts.position
     if opts.angle
@@ -178,6 +178,12 @@ window.PolygonalBody = class PolygonalBody
     # should always be [0, 0] but the value is stored for future correction if
     # it differs.
     @centroidOffset = Vec.sub [cx, cy], @position
+
+  # Internal: Based on the calculated centroid, adjust the position (and point
+  # offsets) so they match up.
+  recalculateCentroid: ->
+    @position = Vec.sub @position, @centroidOffset
+    @centroidOffset = [0, 0]
 
   relativePositionAt: (point) ->
     Vec.sub point, @position

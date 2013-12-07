@@ -69,13 +69,6 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
     points
 
-  # Internal: Based on the calculated centroid, adjust the position (and point
-  # offsets) so they match up.
-  recalculateCentroid: ->
-    @position = Vec.add @position, @centroidOffset
-    @points = (Vec.sub p, @centroidOffset for p in @points)
-    @centroidOffset = [0, 0]
-
   drawDebug: (display) ->
     super
     display.drawCircle @position, 2, "#444"
