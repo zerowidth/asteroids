@@ -90,7 +90,15 @@ window.Utils = Utils =
     values = (Vec.dotProduct point, axis for point in points)
     [Math.min(values...), Math.max(values...)]
 
-  aabbOverlap: ([[ax1, ay1], [ax2, ay2]], [[bx1, by1], [bx2, by2]]) ->
+  aabbOverlap: (aAABB, bAABB, offset=[0,0]) ->
+    [[ax1, ay1], [ax2, ay2]] = aAABB
+    [[bx1, by1], [bx2, by2]] = bAABB
+    [xOffset, yOffset] = offset
+    ax1 += xOffset
+    ax2 += xOffset
+    ay1 += yOffset
+    ay2 += yOffset
+
     @intervalOverlap([ax1, ax2], [bx1, bx2]) > 0 and
       @intervalOverlap([ay1, ay2], [by1, by2]) > 0
 
@@ -108,19 +116,60 @@ window.Utils = Utils =
     @m_z = 987654321
 
   # PRNG from stackoverflow, adapted from wikipedia O_o
-  random: ->
+  random: (max = 1) ->
     mask = 0xffffffff
     @m_z = (36969 * (@m_z & 65535) + (@m_z >> 16)) & mask
     @m_w = (18000 * (@m_w & 65535) + (@m_w >> 16)) & mask
     result = ((@m_z << 16) + @m_w) & mask
     result /= 4294967296
-    result + 0.5
+    max * (result + 0.5)
 
   # To enable unseeded randomness again:
   # random: Math.random
 
   randomInt: (min, max) ->
     min + Math.floor(@random() * (max - min))
+
+  # Use Mitchell's best-candidate method for distributing points randomly:
+  distributeRandomPoints: ([xmin, ymin], [xmax, ymax], radius) ->
+    # a guess as to how many to try and generate: grid of size r, so:
+    n = Math.ceil (xmax - xmin) * (ymax - ymin) / (radius * radius)
+
+    k = 5 # how many candidates to examine
+
+    list = [@randomPoint(xmin, xmax, ymin, ymax)]
+
+    for iteration in [0...n]
+      candidates = for _ in [0...k]
+        # keep generated points away from the edges
+        @randomPoint xmin + radius, xmax - radius, ymin+ radius, ymax - radius
+
+      farthestDistance = 0
+      farthest = null
+
+      # Find the candidate from a list of potential candidates with the largest
+      # minimum distance from all existing points.
+      for candidate, ci in candidates
+        minDistance = Infinity
+
+        for existing in list
+          distance = Vec.magnitude(Vec.sub existing, candidate)
+          if distance < minDistance
+            minDistance = distance
+
+        if minDistance > 2 * radius and minDistance > farthestDistance
+          farthestDistance = minDistance
+          farthest = candidate
+
+      list.push farthest if farthest
+
+    list
+
+  randomPoint: (xmin, xmax, ymin, ymax) ->
+    x = xmin + Utils.random(xmax - xmin)
+    y = ymin + Utils.random(ymax - ymin)
+    [x, y]
+
 
   debugLine: (display, from, to, color, dotSize = 3) ->
     display.drawLine from, to, 2, color

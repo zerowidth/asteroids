@@ -7,13 +7,7 @@ window.Rectangle = class Rectangle extends PolygonalBody
 
     super opts
 
-  reset: ->
-    # TODO only reset if position/velocity/orientation have changed
-    @cachedVertices = null
-
-  vertices: ->
-    @cachedVertices ?=
-      (Vec.transform offset, @position, @orientation for offset in @offsets)
+  vertices: -> @transform @offsets
 
   # the regular polygonal version works, but this is easier:
   calculateInverseMoment: (b, h) ->
@@ -40,12 +34,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
     # the position and vertices have been explicitly set.
     @recalculateCentroid() unless opts.position and opts.vertices
 
-  vertices: ->
-    @cachedVertices ?=
-      (Vec.transform point, @position, @orientation for point in @points)
-
-  reset: ->
-    @cachedVertices = null
+  vertices: -> @transform @points
 
   # Internal: generate a somewhat randomized asteroid shape.
   generatePoints: (radius) ->
@@ -78,13 +67,69 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
     points
 
-  # Internal: Based on the calculated centroid, adjust the position (and point
-  # offsets) so they match up.
-  recalculateCentroid: ->
-    @position = Vec.add @position, @centroidOffset
-    @points = (Vec.sub p, @centroidOffset for p in @points)
-    @centroidOffset = [0, 0]
-
   drawDebug: (display) ->
     super
     display.drawCircle @position, 2, "#444"
+
+window.Ship = class Ship extends PolygonalBody
+
+  # Maneuvering capabilities as a multiplier of mass.
+  # Used to calculate accelerations from keyboard input.
+  thrust: 1
+  turn: 1
+
+  # How much of the flame is visible (drawing)
+  flameLevel: 0
+
+  # Public: Create a new Ship.
+  #
+  # size - how big the ship is (give or take)
+  # opts - a dictionary containing, the standard PolygonalBody options and:
+  #        thrust: how much force the engine has as multiplier of mass
+  #        turn: how much torque the thrusters have as a multiplier of moment
+  constructor: (@size, opts = {}) ->
+    @thrust = opts.thrust if opts.thrust
+    @turn = opts.turn if opts.turn
+
+    # drawn shape is convex, so handle the physics shape separately
+    @drawOffsets = [ [0.9, -0.1], [1, 0], [0.9, 0.1], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
+    @shapeOffsets = [ [0.9, -0.1], [1, 0], [0.9, 0.1], [-0.5, 0.5], [-0.5, -0.5] ]
+
+    super opts
+
+    @recalculateCentroid()
+
+  vertices: -> @transform @shapeOffsets, @size
+
+  integrate: (dt, keyboard) ->
+    if keyboard.up
+      @flameLevel = @flameLevel + (1 - @flameLevel) * 0.75
+    else
+      @flameLevel = @flameLevel - @flameLevel * 0.25
+      @flameLevel = 0 if @flameLevel < 0.05
+
+    if keyboard.up
+      @acceleration = Vec.scale @orientation, @thrust
+    else
+      @acceleration = [0, 0]
+
+    if keyboard.left
+      @angularAccel = @turn
+    else if keyboard.right
+      @angularAccel = -@turn
+    else
+      @angularAccel = 0
+
+    super dt, keyboard
+
+  draw: (display) ->
+    if @flameLevel > 0
+      # tip of flame is from -1.5 to 0.25, map it onto that scale
+      x = - @flameLevel * 1.75 - 0.25
+
+      offsets = [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
+      flame = @transform offsets, @size
+
+      display.drawPolygon flame, "#FB0", 0.25 + @flameLevel * 0.5
+
+    display.drawPolygon @transform(@drawOffsets, @size), @color

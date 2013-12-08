@@ -1,20 +1,42 @@
 class Simulation
 
   # Settings:
-  seed: 12345
+  seed: null
 
   constructor: ->
-    @world = new World "display",
-      scale: 50
+    scale  = 50
+    @width  = Math.floor(window.innerWidth / scale) - 1
+    @height = Math.floor(window.innerHeight / scale) - 1
+
+    @ctx = Sketch.create
+      element: document.getElementById "display"
+      # retina: true
+
+    @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
+
+    @world = new WrappedWorld @display, @width, @height,
       # paused: true
 
+    _.extend @ctx,
+      update: =>
+        @world.update @ctx.dt
+      draw: =>
+        @world.draw()
+      keydown: (e) =>
+        @world.keydown e
+      keyup: (e) =>
+        @world.keyup e
+      click: (e) =>
+        @generateRandomPoints()
+
+    @setNewSeed() unless @seed
     @initializeGUI()
 
-    @randomize()
+    @reset()
 
   # Public: set a new random seed and reset the simulation
   randomize: ->
-    @seed = Math.floor(Math.random() * 10000000)
+    @setNewSeed()
     @reset()
 
   # Public: reset the simulation, start over
@@ -27,7 +49,19 @@ class Simulation
     for controller in @gui.__controllers
       controller.updateDisplay()
 
-    @generateAsteroids()
+    @generateBodies()
+
+  generateRandomPoints: ->
+    for pos in Utils.distributeRandomPoints [0, 0], [@width, @height], 1
+      p = new Particle 2,
+        position: pos
+        size: 2
+        color: "#F00"
+        fade: true
+      @world.addParticle p
+
+  setNewSeed: ->
+    @seed = Math.floor(Math.random() * 10000000)
 
   # Internal: set up a GUI controller for the simulation
   initializeGUI: ->
@@ -46,38 +80,44 @@ class Simulation
     debug.add @world.debugSettings, "drawAABB"
     debug.add @world.debugSettings, "drawSAT"
     debug.add @world.debugSettings, "drawContacts"
+    debug.add @world.debugSettings, "drawCamera"
 
-  generateAsteroids: ->
+  generateBodies: ->
     @asteroids = []
 
-    numAsteroids = 20
-    avgDistance = 6
-    deltaDistance = 2
     avgSize = 1.5
-    sizeDelta = 1
+    sizeDelta = 1.5
+    deltaVelocity = 2
+    deltaTheta = Math.PI
 
-    for theta in [0...numAsteroids]
-      angle = theta * Math.PI * 2 / numAsteroids
-      radius = avgDistance + Utils.random() * deltaDistance - deltaDistance / 2
-
-      position = Vec.polarToVector angle, radius
-      direction = Vec.normalize Vec.sub([0,0], position)
-
-      s = avgSize + Utils.random() * sizeDelta - sizeDelta/2
+    searchRadius = avgSize - sizeDelta / 4
+    for pos in Utils.distributeRandomPoints [0, 0], [@width, @height], searchRadius
+      size = avgSize + Utils.random(sizeDelta) - sizeDelta/2
 
       density = Utils.random()
       color = Math.floor(192 - density * 128)
 
-      @asteroids.push new Asteroid s,
-        position: position
-        velocity: Vec.scale direction, Utils.random() * 3
-        angularVelocity: (Math.PI * 2 * Utils.random() - Math.PI)
+      @asteroids.push new Asteroid size,
+        position: pos
+        velocity: [
+          Utils.random(deltaVelocity) - deltaVelocity / 2,
+          Utils.random(deltaVelocity) - deltaVelocity / 2
+        ]
+        angularVelocity: Utils.random(deltaTheta) - deltaTheta / 2
         density: 5 + 20 * density
         color: "rgba(#{color},#{color},#{color},1)"
 
     @world.addBody a for a in @asteroids
 
-    window.a = @asteroids[0]
-    window.b = @asteroids[1]
+    @ship = new Ship 0.3,
+      color: "#8CF"
+      position: @world.center()
+      angle: Math.PI/2
+      density: 5
+      thrust: 6
+      turn: 5
+
+    @world.addBody @ship
+    @world.track @ship
 
 window.go = -> window.simulation = new Simulation

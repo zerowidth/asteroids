@@ -52,8 +52,10 @@ Vec =
   # using this rotation / translation matrix:
   # | cos(theta) -sin(theta) dx |
   # | sin(theta)  cos(theta) dy |
-  transform: (vec, translation, orientation) ->
+  transform: (vec, translation, orientation, scale=1) ->
     [x, y]   = vec
+    x = x * scale
+    y = y * scale
     [dx, dy] = translation
     [r, i]   = orientation
     [r*x - i*y + dx, i*x + r*y + dy]

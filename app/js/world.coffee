@@ -1,59 +1,69 @@
 window.World = class World
-  constructor: (element, opts={}) ->
-    @scale          = opts.scale or 50
+  constructor: (@display, opts={}) ->
     @speedFactor    = opts.speedFactor or 1
     @paused         = opts.paused or false
     @pauseEveryStep = opts.pauseEveryStep or false
     @pauseOnContact = opts.pauseOnContact or false
 
-    @ctx = Sketch.create
-      element: document.getElementById element
-      retina: true
+    @keyboard = new KeyboardControls
+
     @stats = Utils.drawStats()
-    @display = new Display @ctx, [0, 0], @scale
 
     @bodies = []
+    @particles = []
     @slow = false
 
-    _.extend @ctx,
-      update: @update
-      draw: @draw
-      keydown: (e) =>
-        switch e.keyCode
-          when 16 # shift
-            @slow = true
-      keyup: (e) =>
-        switch e.keyCode
-          when 32 # space
-            @paused = !@paused
-          when 16 # shift
-            @slow = false
+  keydown: (e) =>
+    @keyboard.keydown e
+    @slow = @keyboard.shift
+
+  keyup: (e) =>
+    @keyboard.keyup e
+    @slow = @keyboard.shift
+    switch e.keyCode
+      when 32 # space
+        @paused = !@paused
 
   debugSettings:
     drawMinAxis: false
     drawAABB: false
     drawSAT: false
     drawContacts: false
+    drawCamera: false
 
-  addBody: (body) ->
-    @bodies.push body
+  addBody: (body) -> @bodies.push body
+  removeBody: (body) -> @bodies = _.without(@bodies, body)
+  removeAllBodies: -> @bodies = []
 
-  removeBody: (body) ->
-    @bodies = _.without(@bodies, body)
+  addParticle: (particle) -> @particles.push particle
+  removeParticle: (particle) -> _.without(@particles, particle)
+  removeAllParticles: -> @particles = []
 
-  removeAllBodies: ->
-    @bodies = []
+  track: (@tracking) ->
+    if @tracking
+      @camera = @tracking.position
+    else
+      @camera = @center()
 
-  update: =>
+  center: -> [@sizeX/2, @sizeY/2]
+
+  # Public: update callback. dt is raw javascript time delta in ms.
+  update: (dt) ->
     return if @paused
 
-    dt = @ctx.dt / 1000 * @speedFactor
+    dt = dt / 1000 * @speedFactor
     dt = dt / 5 if @slow
 
     for body in @bodies
-      body.reset()
       body.resetDebug()
-      body.integrate dt
+      body.integrate dt, @keyboard
+
+    for particle in @particles
+      particle.integrate dt
+
+    @particles = (p for p in @particles when p.alive)
+
+    @postIntegrate()
 
     @contacts = @narrowPhaseCollisions @broadPhaseCollisions()
 
@@ -64,7 +74,7 @@ window.World = class World
           if not worst or contact.depth > worst.depth
             worst = contact
         break if worst.depth <= 0
-        worst.resolveInterpenetration()
+        @resolveInterpenetration worst
 
       for n in [1..@contacts.length*2]
         worst = null
@@ -76,11 +86,32 @@ window.World = class World
             worstSepV = sepV
 
         break if worstSepV > 0
-        worst.resolveVelocity dt
+        @resolveVelocity worst, dt
 
       @paused = true if @pauseOnContact
 
     @paused = true if @pauseEveryStep
+
+    if @tracking
+      # camera moves 10% toward the target
+      distance = Vec.sub @tracking.position, @camera
+      @camera = Vec.add @camera, Vec.scale distance, 0.1
+
+      delta = Vec.sub @center(), @camera
+      for body in @bodies
+        body.position = Vec.add body.position, delta
+      for particle in @particles
+        particle.position = Vec.add particle.position, delta
+      @camera = Vec.add @camera, delta
+
+  resolveInterpenetration: (contact) ->
+    contact.resolveInterpenetration()
+
+  resolveVelocity: (contact, dt) ->
+    contact.resolveVelocity dt
+
+  # Internal: hook for post-integration updates
+  postIntegrate: ->
 
   # Naive version: returns all unique pairs of bodies with overlapping AABB's.
   # TODO: use AABB to build quadtree?
@@ -101,10 +132,93 @@ window.World = class World
       contacts = contacts.concat(b.contactPoints a)
     contacts
 
-  draw: =>
+  draw: ->
+    for particle in @particles
+      particle.draw @display
+
     for body in @bodies
       body.draw @display
       body.drawDebug @display, @debugSettings
+
+    if @tracking and @debugSettings.drawCamera
+      @display.drawCircle @camera, 3, "#0FF"
+
     @stats.update()
 
+window.WrappedWorld = class WrappedWorld extends World
+
+  constructor: (@display, @sizeX, @sizeY, opts={}) ->
+    super @display, opts
+
+  addBody: (body) -> super @constrain body
+  addParticle: (particle) -> super @constrain particle
+
+  postIntegrate: ->
+    for body in @bodies
+      @constrain body
+    for particle in @particles
+      @constrain particle
+
+  draw: =>
+    super()
+    @display.drawBounds()
+
+  # Returns an array of arrays containing:
+  # [ body A, body B, offset x, offset y ]
+  # where the offset applies to body A for the sake of contact generation.
+  broadPhaseCollisions: ->
+    return [] if @bodies.length < 2
+    pairs = []
+    for i in [0..(@bodies.length-2)]
+      for j in [(i+1)..(@bodies.length-1)]
+        a = @bodies[i]
+        b = @bodies[j]
+
+        # Compare each pair of bodies: if their AABBs overlap each other either
+        # directly or over a wrapped edge, check for contact.
+
+        xOffsets = [0]
+        yOffsets = [0]
+        aBox = a.aabb()
+        bBox = b.aabb()
+
+        xOffsets.push  @sizeX if aBox[0][0] < 0      or bBox[1][0] > @sizeX
+        xOffsets.push -@sizeX if aBox[1][0] > @sizeX or bBox[0][0] < 0
+        yOffsets.push -@sizeY if aBox[1][1] > @sizeY or bBox[0][1] < 0
+        yOffsets.push  @sizeY if aBox[0][1] < 0      or bBox[1][1] > @sizeY
+
+        for x in xOffsets
+          for y in yOffsets
+            if Utils.aabbOverlap a.aabb(), b.aabb(), [x, y]
+              pairs.push [a, b, x, y]
+    pairs
+
+  narrowPhaseCollisions: (pairs) ->
+    contacts = []
+    for [a, b, offsetX, offsetY] in pairs
+      a.position = Vec.add a.position, [offsetX, offsetY]
+      for contact in a.contactPoints b
+        contact.offset = [offsetX, offsetY]
+        contacts.push contact
+      a.position = Vec.sub a.position, [offsetX, offsetY]
+    contacts
+
+  resolveInterpenetration: (contact) ->
+    contact.from.position = Vec.add contact.from.position, contact.offset
+    contact.resolveInterpenetration()
+    contact.from.position = Vec.sub contact.from.position, contact.offset
+
+  resolveVelocity: (contact, dt) ->
+    contact.from.position = Vec.add contact.from.position, contact.offset
+    contact.resolveVelocity dt
+    contact.from.position = Vec.sub contact.from.position, contact.offset
+
+  constrain: (body) ->
+    body.position = @constrainPosition body.position
+    body
+
+  constrainPosition: ([x,y]) ->
+    x += @sizeX while x <= 0
+    y += @sizeY while y <= 0
+    [x % @sizeX, y % @sizeY]
 

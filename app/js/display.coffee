@@ -1,15 +1,19 @@
 window.Display = class Display
   # ctx    - the canvas context
-  # center - [x, y] center of display
-  # scale  - pixels per meter
+  # center - [x, y] (world) center of display
+  # scale  - pixels per unit (world)
   constructor: (@ctx, @center, @scale) ->
 
   transform: (points...) ->
     dx = @ctx.width/2
     dy = @ctx.height/2
-    ([x * @scale + dx, -y * @scale + dy ] for [x, y] in points)
+    for [x, y] in points
+      [
+        (x - @center[0]) * @scale + dx + @offset[0],
+        (-y + @center[1]) * @scale + dy + @offset[1]
+      ]
 
-  drawPolygon: (vertices, color) ->
+  drawPolygon: (vertices, color, alpha = 0.5) ->
     vertices = @transform vertices...
 
     @ctx.save()
@@ -20,7 +24,7 @@ window.Display = class Display
       @ctx.lineTo point...
     @ctx.lineTo vertices[0]...
 
-    @ctx.globalAlpha = 0.5
+    @ctx.globalAlpha = alpha
     @ctx.fillStyle = color
     @ctx.fill()
 
@@ -30,11 +34,12 @@ window.Display = class Display
 
     @ctx.restore()
 
-  drawCircle: (center, radius, color) ->
+  drawCircle: (center, radius, color, alpha = 1) ->
     @ctx.save()
 
     center = @transform(center)[0]
 
+    @ctx.globalAlpha = alpha
     @ctx.fillStyle = color
 
     @ctx.beginPath()
@@ -59,4 +64,66 @@ window.Display = class Display
     @ctx.lineTo to...
     @ctx.stroke()
 
+    @ctx.restore()
+
+window.WrappedDisplay = class WrappedDisplay extends Display
+  # ctx    - the canvas context
+  # center - [x, y] (world) center of display
+  # sizeX  - size of display (world, not pixels)
+  # sizeY  - size of display (world, not pixels)
+  # scale  - pixels per meter
+  constructor: (@ctx, @center, @sizeX, @sizeY, @scale) ->
+    @offset = [0, 0]
+
+  # Internal: perform drawing operations with given x/y offsets (by quadrant)
+  #
+  # x, y - -1, 0, 1 offset multipliers
+  # fn   - a function to call with the given offset
+  withOffset: (x, y, fn) ->
+    @offset = [x * @sizeX * @scale, y * @sizeY * @scale]
+    fn()
+    @offset = [0, 0]
+
+  drawPolygon: (vertices, color, alpha = 0.5) ->
+    xOffsets = [0]
+    yOffsets = [0]
+    xOffsets.push  1 if _.some(vertices, (v) => v[0] < 0)
+    xOffsets.push -1 if _.some(vertices, (v) => v[0] > @sizeX)
+    yOffsets.push  1 if _.some(vertices, (v) => v[1] > @sizeY)
+    yOffsets.push -1 if _.some(vertices, (v) => v[1] < 0)
+
+    @drawClipped =>
+      for x in xOffsets
+        for y in yOffsets
+          @withOffset x, y, => super vertices, color, alpha
+
+  bounds: ->
+    @transform [ [0,0], [@sizeX, 0], [@sizeX, @sizeY], [0, @sizeY], [0,0] ]...
+
+  drawClipped: (fn) ->
+    @ctx.save()
+
+    points = @bounds()
+    @ctx.beginPath()
+    @ctx.moveTo points[0]...
+    @ctx.lineTo points[i]... for i in [1..4]
+    @ctx.clip()
+
+    fn()
+
+    @ctx.restore()
+
+  # Public: draw the bounds of this display for debugging
+  drawBounds: (color="#FFF", alpha=0.2) ->
+    @ctx.save()
+
+    points = @bounds()
+
+    @ctx.globalAlpha = alpha if alpha < 1
+    @ctx.lineWidth = 1
+    @ctx.strokeStyle = color
+    @ctx.beginPath()
+    @ctx.moveTo points[0]...
+    @ctx.lineTo points[i]... for i in [1..4]
+    @ctx.stroke()
     @ctx.restore()
