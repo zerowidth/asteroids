@@ -10,7 +10,7 @@ class Simulation
 
     @ctx = Sketch.create
       element: document.getElementById "display"
-      retina: true
+      # retina: true
 
     @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
 
@@ -30,7 +30,7 @@ class Simulation
         @generateRandomPoints()
 
     @setNewSeed() unless @seed
-    @initializeGUI()
+    # @initializeGUI()
 
     @reset()
 
@@ -46,24 +46,18 @@ class Simulation
 
     Utils.srand @seed
 
-    for controller in @gui.__controllers
-      controller.updateDisplay()
+    # for controller in @gui.__controllers
+      # controller.updateDisplay()
 
     @generateBodies()
 
   generateRandomPoints: ->
-    for n in [0...100]
-      x = Utils.random @width
-      y = Utils.random @height
-      direction = Rotation.fromAngle Utils.random Math.PI * 2
-      v = Vec.scale direction, Utils.random 5
-      p = new Particle 1,
-        position: [x,y]
-        velocity: v
+    for pos in Utils.distributeRandomPoints [0, 0], [@width, @height], 1
+      p = new Particle 2,
+        position: pos
         size: 2
         color: "#F00"
         fade: true
-        damping: 0.05
       @world.addParticle p
 
   setNewSeed: ->
@@ -88,38 +82,28 @@ class Simulation
     debug.add @world.debugSettings, "drawContacts"
     debug.add @world.debugSettings, "drawCamera"
 
-    dat.GUI.toggleHide()
-
   generateBodies: ->
     @asteroids = []
 
-    numAsteroids = 20
-    avgDistance = 3
-    deltaDistance = 3
-    avgSize = 1.2
-    sizeDelta = 1
+    avgSize = 1.5
+    sizeDelta = 1.5
     deltaVelocity = 2
     deltaTheta = Math.PI
 
-    for theta in [0...numAsteroids]
-      angle = theta * Math.PI * 2 / numAsteroids
-      radius = avgDistance + Utils.random() * deltaDistance - deltaDistance / 2
-
-      position = Vec.polarToVector angle, radius
-      direction = Vec.normalize Vec.sub([0,0], position)
-
-      s = avgSize + Utils.random() * sizeDelta - sizeDelta/2
+    searchRadius = avgSize - sizeDelta / 4
+    for pos in Utils.distributeRandomPoints [0, 0], [@width, @height], searchRadius
+      size = avgSize + Utils.random(sizeDelta) - sizeDelta/2
 
       density = Utils.random()
       color = Math.floor(192 - density * 128)
 
-      @asteroids.push new Asteroid s,
-        position: Vec.add @world.center(), position
+      @asteroids.push new Asteroid size,
+        position: pos
         velocity: [
-          Utils.random() * deltaVelocity - deltaVelocity / 2,
-          Utils.random() * deltaVelocity - deltaVelocity / 2
+          Utils.random(deltaVelocity) - deltaVelocity / 2,
+          Utils.random(deltaVelocity) - deltaVelocity / 2
         ]
-        angularVelocity: deltaTheta * Utils.random() - deltaTheta / 2
+        angularVelocity: Utils.random(deltaTheta) - deltaTheta / 2
         density: 5 + 20 * density
         color: "rgba(#{color},#{color},#{color},1)"
 

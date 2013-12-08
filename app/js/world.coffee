@@ -133,12 +133,12 @@ window.World = class World
     contacts
 
   draw: ->
+    for particle in @particles
+      particle.draw @display
+
     for body in @bodies
       body.draw @display
       body.drawDebug @display, @debugSettings
-
-    for particle in @particles
-      particle.draw @display
 
     if @tracking and @debugSettings.drawCamera
       @display.drawCircle @camera, 3, "#0FF"

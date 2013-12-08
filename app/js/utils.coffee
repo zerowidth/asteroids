@@ -130,6 +130,47 @@ window.Utils = Utils =
   randomInt: (min, max) ->
     min + Math.floor(@random() * (max - min))
 
+  # Use Mitchell's best-candidate method for distributing points randomly:
+  distributeRandomPoints: ([xmin, ymin], [xmax, ymax], radius) ->
+    # a guess as to how many to try and generate: grid of size r, so:
+    n = Math.ceil (xmax - xmin) * (ymax - ymin) / (radius * radius)
+
+    k = 5 # how many candidates to examine
+
+    list = [@randomPoint(xmin, xmax, ymin, ymax)]
+
+    for iteration in [0...n]
+      candidates = for _ in [0...k]
+        # keep generated points away from the edges
+        @randomPoint xmin + radius, xmax - radius, ymin+ radius, ymax - radius
+
+      farthestDistance = 0
+      farthest = null
+
+      # Find the candidate from a list of potential candidates with the largest
+      # minimum distance from all existing points.
+      for candidate, ci in candidates
+        minDistance = Infinity
+
+        for existing in list
+          distance = Vec.magnitude(Vec.sub existing, candidate)
+          if distance < minDistance
+            minDistance = distance
+
+        if minDistance > 2 * radius and minDistance > farthestDistance
+          farthestDistance = minDistance
+          farthest = candidate
+
+      list.push farthest if farthest
+
+    list
+
+  randomPoint: (xmin, xmax, ymin, ymax) ->
+    x = xmin + Utils.random(xmax - xmin)
+    y = ymin + Utils.random(ymax - ymin)
+    [x, y]
+
+
   debugLine: (display, from, to, color, dotSize = 3) ->
     display.drawLine from, to, 2, color
     display.drawCircle from, dotSize, color
