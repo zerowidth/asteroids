@@ -1,6 +1,5 @@
 window.World = class World
-  constructor: (element, opts={}) ->
-    @scale          = opts.scale or 50
+  constructor: (@display, opts={}) ->
     @speedFactor    = opts.speedFactor or 1
     @paused         = opts.paused or false
     @pauseEveryStep = opts.pauseEveryStep or false
@@ -8,27 +7,21 @@ window.World = class World
 
     @keyboard = new KeyboardControls
 
-    @ctx = Sketch.create
-      element: document.getElementById element
-      retina: true
     @stats = Utils.drawStats()
-    @display = new Display @ctx, @scale
 
     @bodies = []
     @slow = false
 
-    _.extend @ctx,
-      update: @update
-      draw: @draw
-      keydown: (e) =>
-        @keyboard.keydown e
-        @slow = @keyboard.shift
-      keyup: (e) =>
-        @keyboard.keyup e
-        @slow = @keyboard.shift
-        switch e.keyCode
-          when 32 # space
-            @paused = !@paused
+  keydown: (e) =>
+    @keyboard.keydown e
+    @slow = @keyboard.shift
+
+  keyup: (e) =>
+    @keyboard.keyup e
+    @slow = @keyboard.shift
+    switch e.keyCode
+      when 32 # space
+        @paused = !@paused
 
   debugSettings:
     drawMinAxis: false
@@ -37,14 +30,10 @@ window.World = class World
     drawContacts: false
     drawCamera: false
 
-  addBody: (body) ->
-    @bodies.push body
+  addBody: (body) -> @bodies.push body
+  removeBody: (body) -> @bodies = _.without(@bodies, body)
+  removeAllBodies: -> @bodies = []
 
-  removeBody: (body) ->
-    @bodies = _.without(@bodies, body)
-
-  removeAllBodies: ->
-    @bodies = []
 
   track: (@tracking) ->
     if @tracking
@@ -54,10 +43,11 @@ window.World = class World
 
   center: -> [@sizeX/2, @sizeY/2]
 
-  update: =>
+  # Public: update callback. dt is raw javascript time delta in ms.
+  update: (dt) ->
     return if @paused
 
-    dt = @ctx.dt / 1000 * @speedFactor
+    dt = dt / 1000 * @speedFactor
     dt = dt / 5 if @slow
 
     for body in @bodies
@@ -131,7 +121,7 @@ window.World = class World
       contacts = contacts.concat(b.contactPoints a)
     contacts
 
-  draw: =>
+  draw: ->
     for body in @bodies
       body.draw @display
       body.drawDebug @display, @debugSettings
@@ -143,16 +133,14 @@ window.World = class World
 
 window.WrappedWorld = class WrappedWorld extends World
 
-  constructor: (element, @sizeX, @sizeY, opts={}) ->
-    super element, opts
-    @display = new WrappedDisplay @ctx, @center(), @sizeX, @sizeY, @scale
+  constructor: (@display, @sizeX, @sizeY, opts={}) ->
+    super @display, opts
 
-  addBody: (body) ->
-    super @constrainBody body
+  addBody: (body) -> super @constrain body
 
   postIntegrate: ->
     for body in @bodies
-      @constrainBody body
+      @constrain body
 
   draw: =>
     super()
@@ -208,7 +196,7 @@ window.WrappedWorld = class WrappedWorld extends World
     contact.resolveVelocity dt
     contact.from.position = Vec.sub contact.from.position, contact.offset
 
-  constrainBody: (body) ->
+  constrain: (body) ->
     body.position = @constrainPosition body.position
     body
 

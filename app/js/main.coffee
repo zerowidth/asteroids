@@ -5,12 +5,27 @@ class Simulation
 
   constructor: ->
     scale  = 50
-    width  = Math.floor(window.innerWidth / scale) - 1
-    height = Math.floor(window.innerHeight / scale) - 1
+    @width  = Math.floor(window.innerWidth / scale) - 1
+    @height = Math.floor(window.innerHeight / scale) - 1
 
-    @world = new WrappedWorld "display", width, height,
-      scale: scale
+    @ctx = Sketch.create
+      element: document.getElementById "display"
+      retina: true
+
+    @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
+
+    @world = new WrappedWorld @display, @width, @height,
       # paused: true
+
+    _.extend @ctx,
+      update: =>
+        @world.update @ctx.dt
+      draw: =>
+        @world.draw()
+      keydown: (e) =>
+        @world.keydown e
+      keyup: (e) =>
+        @world.keyup e
 
     @setNewSeed() unless @seed
     @initializeGUI()
