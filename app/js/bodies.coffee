@@ -92,8 +92,8 @@ window.Ship = class Ship extends PolygonalBody
     @turn = opts.turn if opts.turn
 
     # drawn shape is convex, so handle the physics shape separately
-    @drawOffsets = [ [1, 0], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
-    @shapeOffsets = [ [1, 0], [-0.5, 0.5], [-0.5, -0.5] ]
+    @drawOffsets = [ [0.9, -0.1], [1, 0], [0.9, 0.1], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
+    @shapeOffsets = [ [0.9, -0.1], [1, 0], [0.9, 0.1], [-0.5, 0.5], [-0.5, -0.5] ]
 
     super opts
 
