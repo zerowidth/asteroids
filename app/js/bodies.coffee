@@ -34,6 +34,13 @@ window.Asteroid = class Asteroid extends PolygonalBody
     # the position and vertices have been explicitly set.
     @recalculateCentroid() unless opts.position and opts.vertices
 
+  # Internal: Based on the calculated centroid, adjust the position and point
+  # offsets so they match up.
+  recalculateCentroid: ->
+    offset = Vec.transform @centroidOffset, [0, 0], @orientation
+    @points = (Vec.sub point, offset for point in @points)
+    @centroidOffset = [0, 0]
+
   vertices: -> @transform @points
 
   # Internal: generate a somewhat randomized asteroid shape.
@@ -98,6 +105,14 @@ window.Ship = class Ship extends PolygonalBody
     super opts
 
     @recalculateCentroid()
+
+  # Internal: Based on the calculated centroid, adjust the position and point
+  # offsets so they match up.
+  recalculateCentroid: ->
+    offset = Vec.transform @centroidOffset, [0, 0], @orientation
+    @drawOffsets = (Vec.sub point, offset for point in @drawOffsets)
+    @shapeOffsets = (Vec.sub point, offset for point in @shapeOffsets)
+    @centroidOffset = [0, 0]
 
   vertices: -> @transform @shapeOffsets, @size
 

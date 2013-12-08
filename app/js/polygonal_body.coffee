@@ -183,12 +183,6 @@ window.PolygonalBody = class PolygonalBody
     # it differs.
     @centroidOffset = Vec.sub [cx, cy], @position
 
-  # Internal: Based on the calculated centroid, adjust the position (and point
-  # offsets) so they match up.
-  recalculateCentroid: ->
-    @position = Vec.sub @position, @centroidOffset
-    @centroidOffset = [0, 0]
-
   relativePositionAt: (point) ->
     Vec.sub point, @position
 
