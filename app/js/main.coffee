@@ -8,6 +8,9 @@ class Simulation
     @width  = Math.floor(window.innerWidth / scale) - 1
     @height = Math.floor(window.innerHeight / scale) - 1
 
+    @width = 8
+    @height = 8
+
     @ctx = Sketch.create
       element: document.getElementById "display"
       # retina: true

@@ -26,7 +26,7 @@ window.World = class World
 
   debugSettings:
     drawMinAxis: false
-    drawAABB: false
+    drawAABB: true
     drawSAT: false
     drawContacts: false
     drawCamera: false
@@ -143,6 +143,16 @@ window.World = class World
 
     if @tracking and @debugSettings.drawCamera
       @display.drawCircle @camera, 3, "#0FF"
+
+    quad = new QuadTree [0, 0], [@sizeX, @sizeY]
+    quad.insert body for body in @bodies
+    midpoints = []
+    quad.walk (node) =>
+      midpoints.push [[node.left, node.yMidpoint], [node.right, node.yMidpoint]]
+      midpoints.push [[node.xMidpoint, node.bottom], [node.xMidpoint, node.top]]
+
+    for [start, end] in midpoints
+      @display.drawLine start, end, 1, "#F00"
 
     @stats.update()
 
