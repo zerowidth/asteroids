@@ -55,6 +55,7 @@ window.World = class World
     dt = dt / 5 if @slow
 
     for body in @bodies
+      body.prepare()
       body.resetDebug()
       body.integrate dt, @keyboard
 

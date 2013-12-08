@@ -66,6 +66,11 @@ window.PolygonalBody = class PolygonalBody
 
     @calculatePhysicalProperties()
 
+  # Public: prepare object for an iteration (clear caches, etc.)
+  prepare: ->
+    @cachedAABB = null
+    @cachedVertices = null
+
   # Public: override this in subclasses to define the vertices of this
   # polygonal body.
   vertices: -> []
@@ -76,18 +81,19 @@ window.PolygonalBody = class PolygonalBody
 
   # Public: return an axis-aligned bounding box: [[xmin, ymin], [xmax, ymax]]
   aabb: ->
+    return @cachedAABB if @cachedAABB
     vertices = @vertices()
     [x, y] = vertices[0]
-    xmin = xmax = x
-    ymin = ymax = y
+    xMin = xMax = x
+    yMin = yMax = y
 
     for [x, y] in vertices
-      xmin = x if x < xmin
-      xmax = x if x > xmax
-      ymin = y if y < ymin
-      ymax = y if y > ymax
+      xMin = x if x < xMin
+      xMax = x if x > xMax
+      yMin = y if y < yMin
+      yMax = y if y > yMax
 
-    @debug.aabb = [[xmin, ymin], [xmax, ymax]]
+    @cachedAABB = @debug.aabb = [[xMin, yMin], [xMax, yMax]]
 
   integrate: (dt, keyboard) ->
     return if dt <= 0

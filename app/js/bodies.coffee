@@ -7,7 +7,7 @@ window.Rectangle = class Rectangle extends PolygonalBody
 
     super opts
 
-  vertices: -> @transform @offsets
+  vertices: -> @cachedVertices ?= @transform @offsets
 
   # the regular polygonal version works, but this is easier:
   calculateInverseMoment: (b, h) ->
@@ -41,7 +41,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
     @points = (Vec.sub point, offset for point in @points)
     @centroidOffset = [0, 0]
 
-  vertices: -> @transform @points
+  vertices: -> @cachedVertices ?= @transform @points
 
   # Internal: generate a somewhat randomized asteroid shape.
   generatePoints: (radius) ->
@@ -114,7 +114,7 @@ window.Ship = class Ship extends PolygonalBody
     @shapeOffsets = (Vec.sub point, offset for point in @shapeOffsets)
     @centroidOffset = [0, 0]
 
-  vertices: -> @transform @shapeOffsets, @size
+  vertices: -> @cachedVertices ?= @transform @shapeOffsets, @size
 
   integrate: (dt, keyboard) ->
     if keyboard.up
