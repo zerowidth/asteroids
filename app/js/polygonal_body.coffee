@@ -136,8 +136,8 @@ window.PolygonalBody = class PolygonalBody
 
   # Calculate contact points against another polygon.
   # from http://www.codezealot.org/archives/394 &c
-  contactPoints: (other) ->
-    Geometry.contactPoints this, other
+  contactPoints: (other, offset) ->
+    Geometry.contactPoints this, other, offset
 
   calculatePhysicalProperties: ->
     vertices = @vertices()
@@ -183,21 +183,21 @@ window.PolygonalBody = class PolygonalBody
     # it differs.
     @centroidOffset = Vec.sub [cx, cy], @position
 
-  relativePositionAt: (point) ->
-    Vec.sub point, @position
+  relativePositionAt: (point, offset = [0,0]) ->
+    Vec.sub point, Vec.add @position, offset
 
-  angularVelocityAt: (point) ->
-    Vec.scale Vec.perpendicular(@relativePositionAt(point)), @angularVelocity
+  angularVelocityAt: (point, offset = [0, 0]) ->
+    Vec.scale Vec.perpendicular(@relativePositionAt(point, offset)), @angularVelocity
 
-  angularInertiaAt: (position, direction) ->
-    qRel = @relativePositionAt position
+  angularInertiaAt: (position, direction, offset = [0, 0]) ->
+    qRel = @relativePositionAt position, offset
     torquePerUnitImpulse = Vec.crossProduct qRel, direction
     rotationPerUnitImpulse = torquePerUnitImpulse * @inverseMoment
     velocityPerUnitImpulse = Vec.perpendicular Vec.scale(qRel, rotationPerUnitImpulse)
     Vec.dotProduct velocityPerUnitImpulse, direction
 
-  applyImpulse: (impulse, position) ->
-    impulsiveTorque = Vec.crossProduct @relativePositionAt(position), impulse
+  applyImpulse: (impulse, position, offset = [0, 0]) ->
+    impulsiveTorque = Vec.crossProduct @relativePositionAt(position, offset), impulse
     @velocity = Vec.add @velocity, Vec.scale impulse, @inverseMass
     @angularVelocity += impulsiveTorque * @inverseMoment
 
@@ -206,8 +206,8 @@ window.PolygonalBody = class PolygonalBody
     @position = Vec.add @position, linearChange
     linearChange
 
-  rotateByImpulse: (position, normal, amount) ->
-    impulsiveTorque = Vec.crossProduct @relativePositionAt(position), normal
+  rotateByImpulse: (position, normal, amount, offset = [0, 0]) ->
+    impulsiveTorque = Vec.crossProduct @relativePositionAt(position, offset), normal
     impulsePerMove  = @inverseMoment * impulsiveTorque
     rotationChange  = amount * impulsePerMove
     @orientation    = Rotation.addAngle @orientation, rotationChange

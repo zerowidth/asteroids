@@ -196,22 +196,14 @@ window.WrappedWorld = class WrappedWorld extends World
   narrowPhaseCollisions: (pairs) ->
     contacts = []
     for [a, b, offsetX, offsetY] in pairs
-      a.position = Vec.add a.position, [offsetX, offsetY]
-      for contact in a.contactPoints b
-        contact.offset = [offsetX, offsetY]
-        contacts.push contact
-      a.position = Vec.sub a.position, [offsetX, offsetY]
+      contacts.push contact for contact in a.contactPoints b, [offsetX, offsetY]
     contacts
 
   resolveInterpenetration: (contact) ->
-    contact.from.position = Vec.add contact.from.position, contact.offset
     contact.resolveInterpenetration()
-    contact.from.position = Vec.sub contact.from.position, contact.offset
 
   resolveVelocity: (contact, dt) ->
-    contact.from.position = Vec.add contact.from.position, contact.offset
     contact.resolveVelocity dt
-    contact.from.position = Vec.sub contact.from.position, contact.offset
 
   constrain: (body) ->
     body.position = @constrainPosition body.position

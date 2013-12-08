@@ -1,10 +1,13 @@
 window.Geometry = Geometry =
-  contactPoints: (polygonA, polygonB) ->
-    minAxis = @minimumSeparationAxis polygonA, polygonB
+  transform: (vertices, offset) ->
+    (Vec.add vertex, offset for vertex in vertices)
+
+  contactPoints: (polygonA, polygonB, offset = [0, 0]) ->
+    minAxis = @minimumSeparationAxis polygonA, polygonB, offset
     return [] unless minAxis
 
-    e1 = @bestEdge polygonA, minAxis
-    e2 = @bestEdge polygonB, Vec.invert minAxis # A->B always
+    e1 = @bestEdge @transform(polygonA.vertices(), offset), minAxis
+    e2 = @bestEdge polygonB.vertices(), Vec.invert minAxis # A->B always
 
     # Now, clip the edges. The reference edge is most perpendicular to contact
     # axis, and will be used to clip the incident edge vertices to generate the
@@ -50,7 +53,7 @@ window.Geometry = Geometry =
     for point in clipped
       depth = Vec.dotProduct(refNorm, point) - maxDepth
       if depth >= 0
-        contacts.push new Contact(polygonA, polygonB, point, contactNormal, depth)
+        contacts.push new Contact(polygonA, polygonB, point, contactNormal, depth, offset)
 
     if contacts[1]
       contacts[0].related = contacts[1]
@@ -80,9 +83,7 @@ window.Geometry = Geometry =
     points
 
   # Calculate the best edge (deepest perpendicular edge given a separation axis)
-  bestEdge: (polygon, minAxis) ->
-    vertices = polygon.vertices()
-
+  bestEdge: (vertices, minAxis) ->
     # Find deepest vertex in the polygon along separation axis
     deepestIndex = null
     maxProjection = -Infinity
@@ -108,40 +109,42 @@ window.Geometry = Geometry =
 
   # Use Separating Axis Theorem to find minimum separation axis
   # from http://www.codezealot.org/archives/55 &c.
-  minimumSeparationAxis: (polygonA, polygonB) ->
+  minimumSeparationAxis: (polygonA, polygonB, offset) ->
     minAxis    = null
     minOverlap = Infinity
 
-    for axis in @perpendicularAxes polygonA
-      us      = @projectionInterval polygonA, axis
-      them    = @projectionInterval polygonB, axis
+    for axis in @perpendicularAxes @transform polygonA.vertices(), offset
+      us      = @projectionInterval @transform(polygonA.vertices(), offset), axis
+      them    = @projectionInterval polygonB.vertices(), axis
       overlap = Utils.intervalOverlap us, them
       return false unless overlap > 0
       if overlap < minOverlap
         minOverlap = overlap
         minAxis = axis
 
-    for axis in @perpendicularAxes polygonB
-      us      = @projectionInterval polygonA, axis
-      them    = @projectionInterval polygonB, axis
+    for axis in @perpendicularAxes polygonB.vertices()
+      us      = @projectionInterval @transform(polygonA.vertices(), offset), axis
+      them    = @projectionInterval polygonB.vertices(), axis
       overlap = Utils.intervalOverlap us, them
       return false unless overlap > 0
       if overlap < minOverlap
         minOverlap = overlap
         minAxis = axis
 
-    dir = Vec.sub polygonB.position, polygonA.position
+    dir = Vec.sub polygonB.position, Vec.add(polygonA.position, offset)
     if Vec.dotProduct(dir, minAxis) < 0
       minAxis = Vec.invert minAxis # separation axis is always A->B
 
-    polygonA.debug.minAxis = from: polygonA.position, to: Vec.add polygonA.position, minAxis
+    polygonA.debug.minAxis =
+      from: Vec.add offset, polygonA.position,
+      to:   Vec.add offset, Vec.add polygonA.position, minAxis
     minAxis
 
-  projectionInterval: (polygon, axis) ->
-    Utils.projectionInterval polygon.vertices(), axis
+  projectionInterval: (vertices, axis) ->
+    Utils.projectionInterval vertices, axis
 
-  perpendicularAxes: (polygon) ->
-    for pair in Utils.pairs polygon.vertices()
+  perpendicularAxes: (vertices) ->
+    for pair in Utils.pairs vertices
       Vec.perpendicularNormal Vec.sub pair[1], pair[0]
 
 class Edge
