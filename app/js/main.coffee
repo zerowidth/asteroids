@@ -4,9 +4,12 @@ class Simulation
   seed: null
 
   constructor: ->
-    # @world = new WrappedWorld "display", 24, 15,
-    @world = new WrappedWorld "display", 16, 10,
-      scale: 50
+    scale  = 50
+    width  = Math.floor(window.innerWidth / scale) - 1
+    height = Math.floor(window.innerHeight / scale) - 1
+
+    @world = new WrappedWorld "display", width, height,
+      scale: scale
       # paused: true
 
     @setNewSeed() unless @seed
@@ -53,6 +56,8 @@ class Simulation
     debug.add @world.debugSettings, "drawContacts"
     debug.add @world.debugSettings, "drawCamera"
 
+    dat.GUI.toggleHide()
+
   generateBodies: ->
     @asteroids = []
 
@@ -93,6 +98,8 @@ class Simulation
       position: @world.center()
       angle: Math.PI/2
       density: 20
+      thrust: 6
+      turn: 5
 
     @world.addBody @ship
     @world.track @ship
