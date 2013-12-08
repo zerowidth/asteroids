@@ -26,6 +26,8 @@ class Simulation
         @world.keydown e
       keyup: (e) =>
         @world.keyup e
+      click: (e) =>
+        @generateRandomPoints()
 
     @setNewSeed() unless @seed
     @initializeGUI()
@@ -48,6 +50,21 @@ class Simulation
       controller.updateDisplay()
 
     @generateBodies()
+
+  generateRandomPoints: ->
+    for n in [0...100]
+      x = Utils.random @width
+      y = Utils.random @height
+      direction = Rotation.fromAngle Utils.random Math.PI * 2
+      v = Vec.scale direction, Utils.random 5
+      p = new Particle 1,
+        position: [x,y]
+        velocity: v
+        size: 2
+        color: "#F00"
+        fade: true
+        damping: 0.05
+      @world.addParticle p
 
   setNewSeed: ->
     @seed = Math.floor(Math.random() * 10000000)

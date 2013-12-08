@@ -116,13 +116,13 @@ window.Utils = Utils =
     @m_z = 987654321
 
   # PRNG from stackoverflow, adapted from wikipedia O_o
-  random: ->
+  random: (max = 1) ->
     mask = 0xffffffff
     @m_z = (36969 * (@m_z & 65535) + (@m_z >> 16)) & mask
     @m_w = (18000 * (@m_w & 65535) + (@m_w >> 16)) & mask
     result = ((@m_z << 16) + @m_w) & mask
     result /= 4294967296
-    result + 0.5
+    max * (result + 0.5)
 
   # To enable unseeded randomness again:
   # random: Math.random

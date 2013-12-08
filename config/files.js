@@ -23,6 +23,7 @@ module.exports = require(process.env['LINEMAN_MAIN']).config.extend('files', {
       "app/js/contact.coffee",
       "app/js/polygonal_body.coffee",
       "app/js/bodies.coffee",
+      "app/js/particle.coffee",
       "app/js/main.coffee"
     ]
   }

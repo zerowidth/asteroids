@@ -10,6 +10,7 @@ window.World = class World
     @stats = Utils.drawStats()
 
     @bodies = []
+    @particles = []
     @slow = false
 
   keydown: (e) =>
@@ -34,6 +35,9 @@ window.World = class World
   removeBody: (body) -> @bodies = _.without(@bodies, body)
   removeAllBodies: -> @bodies = []
 
+  addParticle: (particle) -> @particles.push particle
+  removeParticle: (particle) -> _.without(@particles, particle)
+  removeAllParticles: -> @particles = []
 
   track: (@tracking) ->
     if @tracking
@@ -53,6 +57,11 @@ window.World = class World
     for body in @bodies
       body.resetDebug()
       body.integrate dt, @keyboard
+
+    for particle in @particles
+      particle.integrate dt
+
+    @particles = (p for p in @particles when p.alive)
 
     @postIntegrate()
 
@@ -91,6 +100,8 @@ window.World = class World
       delta = Vec.sub @center(), @camera
       for body in @bodies
         body.position = Vec.add body.position, delta
+      for particle in @particles
+        particle.position = Vec.add particle.position, delta
       @camera = Vec.add @camera, delta
 
   resolveInterpenetration: (contact) ->
@@ -126,6 +137,9 @@ window.World = class World
       body.draw @display
       body.drawDebug @display, @debugSettings
 
+    for particle in @particles
+      particle.draw @display
+
     if @tracking and @debugSettings.drawCamera
       @display.drawCircle @camera, 3, "#0FF"
 
@@ -137,10 +151,13 @@ window.WrappedWorld = class WrappedWorld extends World
     super @display, opts
 
   addBody: (body) -> super @constrain body
+  addParticle: (particle) -> super @constrain particle
 
   postIntegrate: ->
     for body in @bodies
       @constrain body
+    for particle in @particles
+      @constrain particle
 
   draw: =>
     super()

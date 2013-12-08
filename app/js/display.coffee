@@ -34,11 +34,12 @@ window.Display = class Display
 
     @ctx.restore()
 
-  drawCircle: (center, radius, color) ->
+  drawCircle: (center, radius, color, alpha = 1) ->
     @ctx.save()
 
     center = @transform(center)[0]
 
+    @ctx.globalAlpha = alpha
     @ctx.fillStyle = color
 
     @ctx.beginPath()
