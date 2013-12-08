@@ -132,6 +132,12 @@ window.Utils = Utils =
 
   # Use Mitchell's best-candidate method for distributing points randomly:
   distributeRandomPoints: ([xmin, ymin], [xmax, ymax], radius) ->
+    # keep generated points away from the edges
+    xmin += radius
+    xmax -= radius
+    ymin += radius
+    ymax -= radius
+
     # a guess as to how many to try and generate: grid of size r, so:
     n = Math.ceil (xmax - xmin) * (ymax - ymin) / (radius * radius)
 
@@ -141,8 +147,7 @@ window.Utils = Utils =
 
     for iteration in [0...n]
       candidates = for _ in [0...k]
-        # keep generated points away from the edges
-        @randomPoint xmin + radius, xmax - radius, ymin+ radius, ymax - radius
+        @randomPoint xmin, xmax, ymin, ymax
 
       farthestDistance = 0
       farthest = null
