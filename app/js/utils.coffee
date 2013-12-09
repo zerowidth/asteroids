@@ -63,8 +63,14 @@ window.Utils = Utils =
   minOnAxis: (points, axisIndex) ->
     Math.min (p[axisIndex] for p in points)...
 
-  pairs: (items) ->
-    _.zip items, items[1..].concat([items[0]])
+  # Return sequential pairs in a sequence: [1, 2, 3] --> [1,2], [2,3], [3,1]
+  sequentialPairs: (items) ->
+    return [] if items.length < 2
+    pairs = []
+    for i in [0..(items.length-2)]
+      pairs.push [items[i], items[i+1]]
+    pairs.push [items[items.length-1], items[0]]
+    pairs
 
   # test from:
   # http://compgeom.cs.uiuc.edu/~jeffe/teaching/373/notes/x05-convexhull.pdf

@@ -144,7 +144,7 @@ window.Geometry = Geometry =
     Utils.projectionInterval vertices, axis
 
   perpendicularAxes: (vertices) ->
-    for pair in Utils.pairs vertices
+    for pair in Utils.sequentialPairs vertices
       Vec.perpendicularNormal Vec.sub pair[1], pair[0]
 
 class Edge

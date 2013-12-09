@@ -155,7 +155,7 @@ window.PolygonalBody = class PolygonalBody
     cy   = 0
 
     # Surveyor's formula
-    for [[x0,y0], [x1,y1]] in Utils.pairs vertices
+    for [[x0,y0], [x1,y1]] in Utils.sequentialPairs vertices
       a     = (x0*y1 - x1*y0) # unsigned area of triangle
       area += a
       ix   += (y0*y0 + y0*y1 + y1*y1) * a
