@@ -26,10 +26,11 @@ window.World = class World
 
   debugSettings:
     drawMinAxis: false
-    drawAABB: true
+    drawAABB: false
     drawSAT: false
     drawContacts: false
     drawCamera: false
+    drawQuadtree: false
 
   addBody: (body) -> @bodies.push body
   removeBody: (body) -> @bodies = _.without(@bodies, body)
@@ -115,7 +116,6 @@ window.World = class World
   postIntegrate: ->
 
   # Naive version: returns all unique pairs of bodies with overlapping AABB's.
-  # TODO: use AABB to build quadtree?
   broadPhaseCollisions: ->
     return [] if @bodies.length < 2
     pairs = []
@@ -144,16 +144,6 @@ window.World = class World
     if @tracking and @debugSettings.drawCamera
       @display.drawCircle @camera, 3, "#0FF"
 
-    quad = new QuadTree [0, 0], [@sizeX, @sizeY]
-    quad.insert body for body in @bodies
-    midpoints = []
-    quad.walk (node) =>
-      midpoints.push [[node.left, node.yMidpoint], [node.right, node.yMidpoint]]
-      midpoints.push [[node.xMidpoint, node.bottom], [node.xMidpoint, node.top]]
-
-    for [start, end] in midpoints
-      @display.drawLine start, end, 1, "#F00"
-
     @stats.update()
 
 window.WrappedWorld = class WrappedWorld extends World
@@ -174,34 +164,46 @@ window.WrappedWorld = class WrappedWorld extends World
     super()
     @display.drawBounds()
 
+    if @debugSettings.drawQuadtree
+      midpoints = []
+      @quad.walk (node) =>
+        if node.nodes
+          midpoints.push [[node.left, node.yMidpoint], [node.right, node.yMidpoint]]
+          midpoints.push [[node.xMidpoint, node.bottom], [node.xMidpoint, node.top]]
+        true
+      for [start, end] in midpoints
+        @display.drawLine start, end, 0.5, "#8F8"
+
   # Returns an array of arrays containing:
   # [ body A, body B, offset x, offset y ]
   # where the offset applies to body A for the sake of contact generation.
   broadPhaseCollisions: ->
     return [] if @bodies.length < 2
+
+    @quad = new QuadTree [0, 0], [@sizeX, @sizeY]
+    @quad.insert body, body.aabb() for body in @bodies
+
     pairs = []
-    for i in [0..(@bodies.length-2)]
-      for j in [(i+1)..(@bodies.length-1)]
-        a = @bodies[i]
-        b = @bodies[j]
+    for body in @bodies
+      xOffsets = [0]
+      yOffsets = [0]
+      boundingBox = body.aabb()
 
-        # Compare each pair of bodies: if their AABBs overlap each other either
-        # directly or over a wrapped edge, check for contact.
+      xOffsets.push  @sizeX if boundingBox[0][0] < 0
+      xOffsets.push -@sizeX if boundingBox[1][0] > @sizeX
+      yOffsets.push -@sizeY if boundingBox[1][1] > @sizeY
+      yOffsets.push  @sizeY if boundingBox[0][1] < 0
 
-        xOffsets = [0]
-        yOffsets = [0]
-        aBox = a.aabb()
-        bBox = b.aabb()
+      for x in xOffsets
+        for y in yOffsets
+          offsetBounds = (Vec.add [x,y], corner for corner in boundingBox)
+          found = @quad.intersecting offsetBounds
+          found = _.uniq found
+          for candidate in found
+            continue if candidate is body
+            if Utils.aabbOverlap boundingBox, candidate.aabb(), [x, y]
+              pairs.push [body, candidate, x, y]
 
-        xOffsets.push  @sizeX if aBox[0][0] < 0      or bBox[1][0] > @sizeX
-        xOffsets.push -@sizeX if aBox[1][0] > @sizeX or bBox[0][0] < 0
-        yOffsets.push -@sizeY if aBox[1][1] > @sizeY or bBox[0][1] < 0
-        yOffsets.push  @sizeY if aBox[0][1] < 0      or bBox[1][1] > @sizeY
-
-        for x in xOffsets
-          for y in yOffsets
-            if Utils.aabbOverlap a.aabb(), b.aabb(), [x, y]
-              pairs.push [a, b, x, y]
     pairs
 
   narrowPhaseCollisions: (pairs) ->

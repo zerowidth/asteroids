@@ -17,8 +17,7 @@ class Simulation
 
     @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
 
-    @world = new WrappedWorld @display, @width, @height,
-      # paused: true
+    @world = new WrappedWorld @display, @width, @height
 
     _.extend @ctx,
       update: =>
@@ -84,12 +83,12 @@ class Simulation
     debug.add @world.debugSettings, "drawSAT"
     debug.add @world.debugSettings, "drawContacts"
     debug.add @world.debugSettings, "drawCamera"
+    debug.add @world.debugSettings, "drawQuadtree"
 
   generateBodies: ->
     @asteroids = []
 
-    avgSize = 1.5
-    sizeDelta = 1.5
+    avgSize = sizeDelta = 1.5
     deltaVelocity = 2
     deltaTheta = Math.PI
 
@@ -110,7 +109,9 @@ class Simulation
         density: 5 + 20 * density
         color: "rgba(#{color},#{color},#{color},1)"
 
-    @world.addBody a for a in @asteroids
+    for a, i in @asteroids
+      a.index = i
+      @world.addBody a
 
     @ship = new Ship 0.3,
       color: "#8CF"
