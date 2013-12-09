@@ -29,7 +29,16 @@ class Simulation
       keyup: (e) =>
         @world.keyup e
       click: (e) =>
-        @generateRandomPoints()
+        offsetX = (window.innerWidth / scale) - @width
+        offsetY = (window.innerHeight / scale) - @height
+        x = e.x / scale - offsetX/2
+        y = @height - (e.y / scale - offsetY/2)
+
+        for body, i in @world.bodies
+          [[left, bottom], [right, top]] = body.aabb()
+          if x > left and x < right and y > bottom and y < top
+            console.log "body #{i}", body
+
 
     @setNewSeed() unless @seed
     @initializeGUI()
@@ -125,3 +134,5 @@ class Simulation
     @world.track @ship
 
 window.go = -> window.simulation = new Simulation
+
+window.body = (i) -> simulation.world.bodies[i] # for debugging
