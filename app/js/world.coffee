@@ -134,12 +134,22 @@ window.World = class World
     contacts
 
   draw: ->
-    for particle in @particles
-      particle.draw @display
 
-    for body in @bodies
-      body.draw @display
-      body.drawDebug @display, @debugSettings
+    @display.drawClipped =>
+      # for particle in @particles
+      #   particle.draw @display
+
+      bodiesByType = _.groupBy @bodies, 'renderWith'
+      byColor = _.groupBy(bodiesByType.polygon or [], 'color')
+
+      _.each byColor, (bodies, color) =>
+        polygons = (body.vertices() for body in bodies)
+        centers = (body.position for body in bodies)
+        @display.drawPolygons polygons, color
+        @display.drawCircles centers, 2, "#444"
+
+      for body in bodiesByType.custom or []
+        body.draw @display
 
     if @tracking and @debugSettings.drawCamera
       @display.drawCircle @camera, 3, "#0FF"

@@ -4,13 +4,14 @@ window.Display = class Display
   # scale  - pixels per unit (world)
   constructor: (@ctx, @center, @scale) ->
 
-  transform: (points...) ->
+  transform: (points) ->
     dx = @ctx.width/2
     dy = @ctx.height/2
     for [x, y] in points
+      # TODO constrain to integers? | 0, etc.?
       [
-        (x - @center[0]) * @scale + dx + @offset[0],
-        (-y + @center[1]) * @scale + dy + @offset[1]
+        (x - @center[0]) * @scale + dx
+        (-y + @center[1]) * @scale + dy
       ]
 
   drawPolygon: (vertices, color, alpha = 0.5) ->
@@ -37,7 +38,7 @@ window.Display = class Display
   drawCircle: (center, radius, color, alpha = 1) ->
     @ctx.save()
 
-    center = @transform(center)[0]
+    center = @transform([ center ])[0]
 
     @ctx.globalAlpha = alpha
     @ctx.fillStyle = color
@@ -51,8 +52,8 @@ window.Display = class Display
   drawLine: (from, to, width, color, alpha=1) ->
     @ctx.save()
 
-    from = @transform(from)[0]
-    to = @transform(to)[0]
+    from = @transform([ from ])[0]
+    to = @transform([ to ])[0]
 
     @ctx.strokeStyle = color
     @ctx.lineWidth = width
@@ -73,32 +74,56 @@ window.WrappedDisplay = class WrappedDisplay extends Display
   # sizeY  - size of display (world, not pixels)
   # scale  - pixels per meter
   constructor: (@ctx, @center, @sizeX, @sizeY, @scale) ->
-    @offset = [0, 0]
 
-  # Internal: perform drawing operations with given x/y offsets (by quadrant)
-  #
-  # x, y - -1, 0, 1 offset multipliers
-  # fn   - a function to call with the given offset
-  withOffset: (x, y, fn) ->
-    @offset = [x * @sizeX * @scale, y * @sizeY * @scale]
-    fn()
-    @offset = [0, 0]
+  # TODO constrain to integers? | 0, etc.?
+  transform: (points, offset = [0, 0]) ->
+    dx = @ctx.width/2
+    dy = @ctx.height/2
+    for [x, y] in points
+      [ ( x - @center[0] + offset[0] * @sizeX) * @scale + dx
+        (-y + @center[1] + offset[1] * @sizeY) * @scale + dy ]
 
-  drawPolygon: (vertices, color, alpha = 0.5) ->
-    xOffsets = [0]
-    yOffsets = [0]
-    xOffsets.push  1 if _.some(vertices, (v) => v[0] < 0)
-    xOffsets.push -1 if _.some(vertices, (v) => v[0] > @sizeX)
-    yOffsets.push  1 if _.some(vertices, (v) => v[1] > @sizeY)
-    yOffsets.push -1 if _.some(vertices, (v) => v[1] < 0)
+  drawPolygons: (polygons, color, alpha = 0.5) ->
+    @ctx.beginPath()
 
-    @drawClipped =>
+    for vertices in polygons
+      xOffsets = [0]
+      yOffsets = [0]
+      # TODO replace with AABB checks (pass in bodies, not vertices)
+      xOffsets.push  1 if _.some(vertices, (v) => v[0] < 0)
+      xOffsets.push -1 if _.some(vertices, (v) => v[0] > @sizeX)
+      yOffsets.push  1 if _.some(vertices, (v) => v[1] > @sizeY)
+      yOffsets.push -1 if _.some(vertices, (v) => v[1] < 0)
       for x in xOffsets
         for y in yOffsets
-          @withOffset x, y, => super vertices, color, alpha
+          transformed = @transform vertices, [x, y]
+          @ctx.moveTo transformed[0]...
+          @ctx.lineTo point... for point in transformed[1..]
+          @ctx.lineTo transformed[0]...
+
+    @ctx.globalAlpha = 1
+    @ctx.fillStyle = color
+    @ctx.strokeStyle = color
+    @ctx.lineWidth = 1
+    @ctx.stroke()
+
+    @ctx.globalAlpha = alpha
+    @ctx.fill()
+
+  drawCircles: (centers, radius, color, alpha = 1) ->
+    @ctx.globalAlpha = alpha
+    @ctx.fillStyle = color
+    @ctx.beginPath()
+
+    for center in centers
+      center = @transform([ center ])[0]
+      @ctx.moveTo center...
+      @ctx.arc center[0], center[1], radius, 0, Math.PI * 2
+
+    @ctx.fill()
 
   bounds: ->
-    @transform [ [0,0], [@sizeX, 0], [@sizeX, @sizeY], [0, @sizeY], [0,0] ]...
+    @transform [ [0,0], [@sizeX, 0], [@sizeX, @sizeY], [0, @sizeY], [0,0] ]
 
   drawClipped: (fn) ->
     @ctx.save()
@@ -114,12 +139,12 @@ window.WrappedDisplay = class WrappedDisplay extends Display
     @ctx.restore()
 
   # Public: draw the bounds of this display for debugging
-  drawBounds: (color="#FFF", alpha=0.2) ->
+  drawBounds: (color="#333") ->
     @ctx.save()
 
     points = @bounds()
 
-    @ctx.globalAlpha = alpha if alpha < 1
+    @ctx.globalAlpha = 1
     @ctx.lineWidth = 1
     @ctx.strokeStyle = color
     @ctx.beginPath()

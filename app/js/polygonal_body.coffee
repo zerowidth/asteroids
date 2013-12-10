@@ -19,6 +19,7 @@ window.PolygonalBody = class PolygonalBody
 
   # what's it look like?
   color: "#CCC"
+  renderWith: 'polygon'
 
   # simulation parameters
   damping: 0.9999 # minimal
