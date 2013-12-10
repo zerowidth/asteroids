@@ -93,8 +93,14 @@ window.Utils = Utils =
 
   # project each point on to the given axis, returns a min/max interval
   projectionInterval: (points, axis) ->
-    values = (Vec.dotProduct point, axis for point in points)
-    [Math.min(values...), Math.max(values...)]
+    min = Infinity
+    max = -Infinity
+
+    for point in points
+      value = Vec.dotProduct point, axis
+      min = value if value < min
+      max = value if value > max
+    [min, max]
 
   aabbOverlap: (aAABB, bAABB, offset=[0,0]) ->
     [[ax1, ay1], [ax2, ay2]] = aAABB
