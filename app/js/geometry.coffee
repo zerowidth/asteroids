@@ -113,9 +113,10 @@ window.Geometry = Geometry =
     minAxis    = null
     minOverlap = Infinity
 
-    for axis in @perpendicularAxes @transform polygonA.vertices(), offset
-      us      = @projectionInterval @transform(polygonA.vertices(), offset), axis
-      them    = @projectionInterval polygonB.vertices(), axis
+    transformedVertices = @transform polygonA.vertices(), offset
+    for axis in @perpendicularAxes transformedVertices
+      us      = Utils.projectionInterval transformedVertices, axis
+      them    = Utils.projectionInterval polygonB.vertices(), axis
       overlap = Utils.intervalOverlap us, them
       return false unless overlap > 0
       if overlap < minOverlap
@@ -123,8 +124,8 @@ window.Geometry = Geometry =
         minAxis = axis
 
     for axis in @perpendicularAxes polygonB.vertices()
-      us      = @projectionInterval @transform(polygonA.vertices(), offset), axis
-      them    = @projectionInterval polygonB.vertices(), axis
+      us      = Utils.projectionInterval transformedVertices, axis
+      them    = Utils.projectionInterval polygonB.vertices(), axis
       overlap = Utils.intervalOverlap us, them
       return false unless overlap > 0
       if overlap < minOverlap
@@ -139,9 +140,6 @@ window.Geometry = Geometry =
       from: Vec.add offset, polygonA.position,
       to:   Vec.add offset, Vec.add polygonA.position, minAxis
     minAxis
-
-  projectionInterval: (vertices, axis) ->
-    Utils.projectionInterval vertices, axis
 
   perpendicularAxes: (vertices) ->
     for pair in Utils.sequentialPairs vertices
