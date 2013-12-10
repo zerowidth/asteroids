@@ -211,9 +211,9 @@ window.WrappedWorld = class WrappedWorld extends World
 
       for x in xOffsets
         for y in yOffsets
-          offsetBounds = (Vec.add [x,y], corner for corner in boundingBox)
-          found = @quad.intersecting offsetBounds
-          found = _.uniq found
+          bottomLeft = Vec.add [x, y], boundingBox[0]
+          topRight   = Vec.add [x, y], boundingBox[1]
+          found = _.uniq @quad.intersecting [bottomLeft, topRight]
           for candidate in found
             continue if candidate is body
             if Utils.aabbOverlap boundingBox, candidate.aabb(), [x, y]
