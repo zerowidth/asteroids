@@ -42,9 +42,9 @@ window.World = class World
 
   track: (@tracking) ->
     if @tracking
-      @camera = @tracking.position
+      @camera1 = @camera2 = @tracking.position
     else
-      @camera = @center()
+      @camera1 = @camera2 = @center()
 
   center: -> [@sizeX/2, @sizeY/2]
 
@@ -96,15 +96,19 @@ window.World = class World
 
     if @tracking
       # camera moves 10% toward the target
-      distance = Vec.sub @tracking.position, @camera
-      @camera = Vec.add @camera, Vec.scale distance, 0.1
+      distance = Vec.sub @tracking.position, @camera1
+      @camera1 = Vec.add @camera1, Vec.scale distance, 0.1
 
-      delta = Vec.sub @center(), @camera
+      distance = Vec.sub @camera1, @camera2
+      @camera2 = Vec.add @camera2, Vec.scale distance, 0.1
+
+      delta = Vec.sub @center(), @camera2
       for body in @bodies
         body.position = Vec.add body.position, delta
       for particle in @particles
         particle.position = Vec.add particle.position, delta
-      @camera = Vec.add @camera, delta
+      @camera1 = Vec.add @camera1, delta
+      @camera2 = Vec.add @camera2, delta
 
   resolveInterpenetration: (contact) ->
     contact.resolveInterpenetration()
@@ -151,8 +155,9 @@ window.World = class World
       for body in bodiesByType.custom or []
         body.draw @display
 
-    if @tracking and @debugSettings.drawCamera
-      @display.drawCircle @camera, 3, "#0FF"
+      if @tracking and @debugSettings.drawCamera
+        @display.drawCircle @camera1, 3, "#0FF"
+        @display.drawCircle @camera2, 3, "#0AF"
 
     @stats.update()
 
