@@ -130,6 +130,9 @@ class Simulation
       thrust: 6
       turn: 5
 
+    # make the ship more resistant to spinning (helps with bounces)
+    @ship.inverseMoment = @ship.inverseMoment / 4
+
     @world.addBody @ship
     @world.track @ship
 
