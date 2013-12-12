@@ -42,9 +42,9 @@ window.World = class World
 
   track: (@tracking) ->
     if @tracking
-      @camera = @tracking.position
+      @camera1 = @camera2 = @tracking.position
     else
-      @camera = @center()
+      @camera1 = @camera2 = @center()
 
   center: -> [@sizeX/2, @sizeY/2]
 
@@ -96,15 +96,19 @@ window.World = class World
 
     if @tracking
       # camera moves 10% toward the target
-      distance = Vec.sub @tracking.position, @camera
-      @camera = Vec.add @camera, Vec.scale distance, 0.1
+      distance = Vec.sub @tracking.position, @camera1
+      @camera1 = Vec.add @camera1, Vec.scale distance, 0.1
 
-      delta = Vec.sub @center(), @camera
+      distance = Vec.sub @camera1, @camera2
+      @camera2 = Vec.add @camera2, Vec.scale distance, 0.1
+
+      delta = Vec.sub @center(), @camera2
       for body in @bodies
         body.position = Vec.add body.position, delta
       for particle in @particles
         particle.position = Vec.add particle.position, delta
-      @camera = Vec.add @camera, delta
+      @camera1 = Vec.add @camera1, delta
+      @camera2 = Vec.add @camera2, delta
 
   resolveInterpenetration: (contact) ->
     contact.resolveInterpenetration()
@@ -134,15 +138,26 @@ window.World = class World
     contacts
 
   draw: ->
-    for particle in @particles
-      particle.draw @display
 
-    for body in @bodies
-      body.draw @display
-      body.drawDebug @display, @debugSettings
+    @display.drawClipped =>
+      # for particle in @particles
+      #   particle.draw @display
 
-    if @tracking and @debugSettings.drawCamera
-      @display.drawCircle @camera, 3, "#0FF"
+      bodiesByType = _.groupBy @bodies, 'renderWith'
+      byColor = _.groupBy(bodiesByType.polygon or [], 'color')
+
+      _.each byColor, (bodies, color) =>
+        polygons = (body.vertices() for body in bodies)
+        centers = (body.position for body in bodies)
+        @display.drawPolygons polygons, color
+        @display.drawCircles centers, 2, "#444"
+
+      for body in bodiesByType.custom or []
+        body.draw @display
+
+      if @tracking and @debugSettings.drawCamera
+        @display.drawCircle @camera1, 3, "#0FF"
+        @display.drawCircle @camera2, 3, "#0AF"
 
     @stats.update()
 
@@ -196,9 +211,9 @@ window.WrappedWorld = class WrappedWorld extends World
 
       for x in xOffsets
         for y in yOffsets
-          offsetBounds = (Vec.add [x,y], corner for corner in boundingBox)
-          found = @quad.intersecting offsetBounds
-          found = _.uniq found
+          bottomLeft = Vec.add [x, y], boundingBox[0]
+          topRight   = Vec.add [x, y], boundingBox[1]
+          found = _.uniq @quad.intersecting [bottomLeft, topRight]
           for candidate in found
             continue if candidate is body
             if Utils.aabbOverlap boundingBox, candidate.aabb(), [x, y]

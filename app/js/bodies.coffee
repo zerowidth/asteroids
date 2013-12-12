@@ -17,7 +17,6 @@ window.Rectangle = class Rectangle extends PolygonalBody
       (1/@inverseMass)*(b*b + h*h)/12
 
 window.Asteroid = class Asteroid extends PolygonalBody
-
   # Public: Create a new Asteroid.
   #
   # size - how big the asteroid is (give or take)
@@ -79,6 +78,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
     display.drawCircle @position, 2, "#444"
 
 window.Ship = class Ship extends PolygonalBody
+  renderWith: 'custom'
 
   # Maneuvering capabilities as a multiplier of mass.
   # Used to calculate accelerations from keyboard input.
@@ -145,6 +145,6 @@ window.Ship = class Ship extends PolygonalBody
       offsets = [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
       flame = @transform offsets, @size
 
-      display.drawPolygon flame, "#FB0", 0.25 + @flameLevel * 0.5
+      display.drawPolygons [flame], "#FB0", 0.25 + @flameLevel * 0.5
 
-    display.drawPolygon @transform(@drawOffsets, @size), @color
+    display.drawPolygons [@transform(@drawOffsets, @size)], @color

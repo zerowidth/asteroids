@@ -105,8 +105,8 @@ class Simulation
     for pos in Utils.distributeRandomPoints [0, 0], [@width, @height], searchRadius
       size = avgSize + Utils.random(sizeDelta) - sizeDelta/2
 
-      density = Utils.random()
-      color = Math.floor(192 - density * 128)
+      density = Utils.randomInt(0,4)
+      color = Math.floor(192 - density * 32)
 
       @asteroids.push new Asteroid size,
         position: pos
@@ -115,7 +115,7 @@ class Simulation
           Utils.random(deltaVelocity) - deltaVelocity / 2
         ]
         angularVelocity: Utils.random(deltaTheta) - deltaTheta / 2
-        density: 5 + 20 * density
+        density: 10 + 5 * density
         color: "rgba(#{color},#{color},#{color},1)"
 
     for a, i in @asteroids

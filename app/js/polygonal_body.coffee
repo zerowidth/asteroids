@@ -19,6 +19,7 @@ window.PolygonalBody = class PolygonalBody
 
   # what's it look like?
   color: "#CCC"
+  renderWith: 'polygon'
 
   # simulation parameters
   damping: 0.9999 # minimal
@@ -82,12 +83,10 @@ window.PolygonalBody = class PolygonalBody
   # Public: return an axis-aligned bounding box: [[xmin, ymin], [xmax, ymax]]
   aabb: ->
     return @cachedAABB if @cachedAABB
-    vertices = @vertices()
-    [x, y] = vertices[0]
-    xMin = xMax = x
-    yMin = yMax = y
+    xMin = yMin = Infinity
+    xMax = yMax = -Infinity
 
-    for [x, y] in vertices
+    for [x, y] in @vertices()
       xMin = x if x < xMin
       xMax = x if x > xMax
       yMin = y if y < yMin
