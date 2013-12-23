@@ -139,8 +139,8 @@ window.World = class World
   draw: ->
 
     @display.drawClipped =>
-      # for particle in @particles
-      #   particle.draw @display
+      for particle in @particles
+        particle.draw @display
 
       bodiesByType = _.groupBy @bodies, 'renderWith'
       byColor = _.groupBy(bodiesByType.polygon or [], 'color')
