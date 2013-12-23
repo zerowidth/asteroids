@@ -25,7 +25,17 @@ class Simulation
       draw: =>
         @world.draw()
       keydown: (e) =>
+        if e.keyCode is 32 # space
+          v = Vec.scale @ship.orientation, 5
+          p = new Particle 1,
+            position: @ship.position
+            velocity: Vec.add @ship.velocity, v
+            size: 2
+            color: "#F4A"
+            fade: true
+          @world.addParticle p
         @world.keydown e
+
       keyup: (e) =>
         @world.keyup e
       click: (e) =>

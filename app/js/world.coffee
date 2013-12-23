@@ -20,9 +20,8 @@ window.World = class World
   keyup: (e) =>
     @keyboard.keyup e
     @slow = @keyboard.shift
-    switch e.keyCode
-      when 32 # space
-        @paused = !@paused
+    if e.keyCode is 80 # p
+      @paused = !@paused
 
   debugSettings:
     drawMinAxis: false
