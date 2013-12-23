@@ -48,6 +48,7 @@ class Simulation
           [[left, bottom], [right, top]] = body.aabb()
           if x > left and x < right and y > bottom and y < top
             console.log "body #{i}", body
+            console.log Geometry.pointInsidePolygon body.vertices(), [x, y]
 
 
     @setNewSeed() unless @seed
