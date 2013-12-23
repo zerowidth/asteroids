@@ -7,9 +7,9 @@ class Simulation
     scale  = 50
     @width  = Math.floor(window.innerWidth / scale) - 1
     @height = Math.floor(window.innerHeight / scale) - 1
+    @width = Math.min(@width, @height)
+    @height = Math.min(@width, @height)
 
-    @width = 8
-    @height = 8
 
     @ctx = Sketch.create
       element: document.getElementById "display"
