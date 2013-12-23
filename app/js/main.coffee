@@ -17,7 +17,7 @@ class Simulation
 
     @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
 
-    @world = new WrappedWorld @display, @width, @height
+    @world = new AsteroidWorld @display, @width, @height
 
     _.extend @ctx,
       update: =>
@@ -45,8 +45,8 @@ class Simulation
         y = @height - (e.y / scale - offsetY/2)
 
         for body in @world.quadtree.atPoint [x, y]
-          if Geometry.pointInsidePolygon body.vertices(), [x, y]
-            body.color = "#4F4"
+          if Geometry.pointInsidePolygon [x, y], body.vertices()
+            body.toggleColor "4F4"
 
     @setNewSeed() unless @seed
     # @initializeGUI()
@@ -137,6 +137,8 @@ class Simulation
       density: 5
       thrust: 6
       turn: 5
+
+    @ship.ship = true
 
     # make the ship more resistant to spinning (helps with bounces)
     @ship.inverseMoment = @ship.inverseMoment / 4

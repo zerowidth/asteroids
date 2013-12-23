@@ -129,3 +129,5 @@ window.Contact = class Contact
     relativeChange = Vec.dotProduct @normal, deltaPosition
     @depth += relativeChange * sign
 
+window.ParticleContact = class ParticleContact
+  constructor: (@particle, @body) ->

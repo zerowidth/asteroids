@@ -2,7 +2,7 @@ window.Geometry = Geometry =
   transform: (vertices, offset) ->
     (Vec.add vertex, offset for vertex in vertices)
 
-  pointInsidePolygon: (polygon, point, offset = [0, 0]) ->
+  pointInsidePolygon: (point, polygon, offset = [0, 0]) ->
     for pair in Utils.sequentialPairs polygon
       normal = Vec.perpendicularNormal Vec.sub pair[1], pair[0]
       test   = Vec.sub point, pair[0]
