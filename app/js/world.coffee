@@ -7,7 +7,7 @@ window.World = class World
 
     @keyboard = new KeyboardControls
 
-    @stats = Utils.drawStats()
+    # @stats = Utils.drawStats()
 
     @bodies = []
     @particles = []
@@ -158,7 +158,7 @@ window.World = class World
         @display.drawCircle @camera1, 3, "#0FF"
         @display.drawCircle @camera2, 3, "#0AF"
 
-    @stats.update()
+    # @stats.update()
 
 window.WrappedWorld = class WrappedWorld extends World
 
@@ -217,7 +217,6 @@ window.WrappedWorld = class WrappedWorld extends World
             continue if candidate is body
             if Utils.aabbOverlap boundingBox, candidate.aabb(), [x, y]
               pairs.push [body, candidate, x, y]
-
     pairs
 
   narrowPhaseCollisions: (pairs) ->

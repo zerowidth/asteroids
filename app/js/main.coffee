@@ -51,7 +51,7 @@ class Simulation
 
 
     @setNewSeed() unless @seed
-    @initializeGUI()
+    # @initializeGUI()
 
     @reset()
 
@@ -67,8 +67,8 @@ class Simulation
 
     Utils.srand @seed
 
-    for controller in @gui.__controllers
-      controller.updateDisplay()
+    # for controller in @gui.__controllers
+    #   controller.updateDisplay()
 
     @generateBodies()
 
