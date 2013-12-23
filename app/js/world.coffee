@@ -75,7 +75,7 @@ window.World = class World
           if not worst or contact.depth > worst.depth
             worst = contact
         break if worst.depth <= 0
-        @resolveInterpenetration worst
+        worst.resolveInterpenetration()
 
       for n in [1..@contacts.length*2]
         worst = null
@@ -87,7 +87,7 @@ window.World = class World
             worstSepV = sepV
 
         break if worstSepV > 0
-        @resolveVelocity worst, dt
+        worst.resolveVelocity dt
 
       @paused = true if @pauseOnContact
 
@@ -108,12 +108,6 @@ window.World = class World
         particle.position = Vec.add particle.position, delta
       @camera1 = Vec.add @camera1, delta
       @camera2 = Vec.add @camera2, delta
-
-  resolveInterpenetration: (contact) ->
-    contact.resolveInterpenetration()
-
-  resolveVelocity: (contact, dt) ->
-    contact.resolveVelocity dt
 
   # Internal: hook for post-integration updates
   postIntegrate: ->
@@ -180,7 +174,7 @@ window.WrappedWorld = class WrappedWorld extends World
 
     if @debugSettings.drawQuadtree
       midpoints = []
-      @quad.walk (node) =>
+      @quadtree.walk (node) =>
         if node.nodes
           midpoints.push [[node.left, node.yMidpoint], [node.right, node.yMidpoint]]
           midpoints.push [[node.xMidpoint, node.bottom], [node.xMidpoint, node.top]]
@@ -194,8 +188,8 @@ window.WrappedWorld = class WrappedWorld extends World
   broadPhaseCollisions: ->
     return [] if @bodies.length < 2
 
-    @quad = new QuadTree [0, 0], [@sizeX, @sizeY]
-    @quad.insert body, body.aabb() for body in @bodies
+    @quadtree = new QuadTree [0, 0], [@sizeX, @sizeY]
+    @quadtree.insert body, body.aabb() for body in @bodies
 
     pairs = []
     for body in @bodies
@@ -212,7 +206,7 @@ window.WrappedWorld = class WrappedWorld extends World
         for y in yOffsets
           bottomLeft = Vec.add [x, y], boundingBox[0]
           topRight   = Vec.add [x, y], boundingBox[1]
-          found = _.uniq @quad.intersecting [bottomLeft, topRight]
+          found = _.uniq @quadtree.intersecting [bottomLeft, topRight]
           for candidate in found
             continue if candidate is body
             if Utils.aabbOverlap boundingBox, candidate.aabb(), [x, y]
@@ -224,12 +218,6 @@ window.WrappedWorld = class WrappedWorld extends World
     for [a, b, offsetX, offsetY] in pairs
       contacts.push contact for contact in a.contactPoints b, [offsetX, offsetY]
     contacts
-
-  resolveInterpenetration: (contact) ->
-    contact.resolveInterpenetration()
-
-  resolveVelocity: (contact, dt) ->
-    contact.resolveVelocity dt
 
   constrain: (body) ->
     body.position = @constrainPosition body.position
