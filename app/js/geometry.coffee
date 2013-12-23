@@ -2,6 +2,13 @@ window.Geometry = Geometry =
   transform: (vertices, offset) ->
     (Vec.add vertex, offset for vertex in vertices)
 
+  pointInsidePolygon: (point, polygon, offset = [0, 0]) ->
+    for pair in Utils.sequentialPairs polygon
+      normal = Vec.perpendicularNormal Vec.sub pair[1], pair[0]
+      test   = Vec.sub point, pair[0]
+      return false if Vec.dotProduct(test, normal) < 0
+    true
+
   contactPoints: (polygonA, polygonB, offset = [0, 0]) ->
     minAxis = @minimumSeparationAxis polygonA, polygonB, offset
     return [] unless minAxis

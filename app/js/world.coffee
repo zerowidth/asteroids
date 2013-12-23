@@ -7,7 +7,7 @@ window.World = class World
 
     @keyboard = new KeyboardControls
 
-    @stats = Utils.drawStats()
+    # @stats = Utils.drawStats()
 
     @bodies = []
     @particles = []
@@ -20,9 +20,8 @@ window.World = class World
   keyup: (e) =>
     @keyboard.keyup e
     @slow = @keyboard.shift
-    switch e.keyCode
-      when 32 # space
-        @paused = !@paused
+    if e.keyCode is 80 # p
+      @paused = !@paused
 
   debugSettings:
     drawMinAxis: false
@@ -55,15 +54,16 @@ window.World = class World
     dt = dt / 1000 * @speedFactor
     dt = dt / 5 if @slow
 
+    @quadtree = new QuadTree [0, 0], [@sizeX, @sizeY]
+
     for body in @bodies
       body.prepare()
       body.resetDebug()
       body.integrate dt, @keyboard
+      @quadtree.insert body, body.aabb()
 
     for particle in @particles
       particle.integrate dt
-
-    @particles = (p for p in @particles when p.alive)
 
     @postIntegrate()
 
@@ -76,7 +76,7 @@ window.World = class World
           if not worst or contact.depth > worst.depth
             worst = contact
         break if worst.depth <= 0
-        @resolveInterpenetration worst
+        worst.resolveInterpenetration()
 
       for n in [1..@contacts.length*2]
         worst = null
@@ -88,10 +88,16 @@ window.World = class World
             worstSepV = sepV
 
         break if worstSepV > 0
-        @resolveVelocity worst, dt
+        worst.resolveVelocity dt
 
-      @paused = true if @pauseOnContact
+    @particleContacts = @generateParticleContacts()
 
+    # post-process collisions:
+    @particleCollisions @particleContacts
+    @collisions @contacts
+
+    @paused = true if @pauseOnContact and
+      (@contacts.length > 0 or @particleContacts.length > 0)
     @paused = true if @pauseEveryStep
 
     if @tracking
@@ -110,14 +116,34 @@ window.World = class World
       @camera1 = Vec.add @camera1, delta
       @camera2 = Vec.add @camera2, delta
 
-  resolveInterpenetration: (contact) ->
-    contact.resolveInterpenetration()
-
-  resolveVelocity: (contact, dt) ->
-    contact.resolveVelocity dt
+    @cleanup()
 
   # Internal: hook for post-integration updates
   postIntegrate: ->
+
+  # Internal: hook for processing contacts after position/velocity has been
+  # resolved.
+  #
+  # contacts - an Array of Contact objects
+  collisions: (contacts) ->
+
+  # Internal: hook for processing polygon/body collisions, if present
+  #
+  # contacts - an Array of ParticleContact objects
+  particleCollisions: (contacts) ->
+
+  # Internal: generate particle->body contacts
+  generateParticleContacts: ->
+    contacts = []
+    for particle in @particles
+      for body in @quadtree.atPoint particle.position
+        if Geometry.pointInsidePolygon particle.position, body.vertices()
+          contacts.push new ParticleContact particle, body
+    contacts
+
+  # Internal: hook for cleanup after everything has been updated
+  cleanup: ->
+    @particles = (p for p in @particles when p.alive)
 
   # Naive version: returns all unique pairs of bodies with overlapping AABB's.
   broadPhaseCollisions: ->
@@ -140,8 +166,8 @@ window.World = class World
   draw: ->
 
     @display.drawClipped =>
-      # for particle in @particles
-      #   particle.draw @display
+      for particle in @particles
+        particle.draw @display
 
       bodiesByType = _.groupBy @bodies, 'renderWith'
       byColor = _.groupBy(bodiesByType.polygon or [], 'color')
@@ -159,7 +185,7 @@ window.World = class World
         @display.drawCircle @camera1, 3, "#0FF"
         @display.drawCircle @camera2, 3, "#0AF"
 
-    @stats.update()
+    # @stats.update()
 
 window.WrappedWorld = class WrappedWorld extends World
 
@@ -181,7 +207,7 @@ window.WrappedWorld = class WrappedWorld extends World
 
     if @debugSettings.drawQuadtree
       midpoints = []
-      @quad.walk (node) =>
+      @quadtree.walk (node) =>
         if node.nodes
           midpoints.push [[node.left, node.yMidpoint], [node.right, node.yMidpoint]]
           midpoints.push [[node.xMidpoint, node.bottom], [node.xMidpoint, node.top]]
@@ -194,9 +220,6 @@ window.WrappedWorld = class WrappedWorld extends World
   # where the offset applies to body A for the sake of contact generation.
   broadPhaseCollisions: ->
     return [] if @bodies.length < 2
-
-    @quad = new QuadTree [0, 0], [@sizeX, @sizeY]
-    @quad.insert body, body.aabb() for body in @bodies
 
     pairs = []
     for body in @bodies
@@ -213,12 +236,10 @@ window.WrappedWorld = class WrappedWorld extends World
         for y in yOffsets
           bottomLeft = Vec.add [x, y], boundingBox[0]
           topRight   = Vec.add [x, y], boundingBox[1]
-          found = _.uniq @quad.intersecting [bottomLeft, topRight]
-          for candidate in found
+          for candidate in @quadtree.intersecting [bottomLeft, topRight]
             continue if candidate is body
             if Utils.aabbOverlap boundingBox, candidate.aabb(), [x, y]
               pairs.push [body, candidate, x, y]
-
     pairs
 
   narrowPhaseCollisions: (pairs) ->
@@ -227,11 +248,9 @@ window.WrappedWorld = class WrappedWorld extends World
       contacts.push contact for contact in a.contactPoints b, [offsetX, offsetY]
     contacts
 
-  resolveInterpenetration: (contact) ->
-    contact.resolveInterpenetration()
-
-  resolveVelocity: (contact, dt) ->
-    contact.resolveVelocity dt
+  # Internal: generate particle->body contacts, but with wrapping
+  # TODO this needs to involve the quadtree.
+  # generateParticleContacts: ->
 
   constrain: (body) ->
     body.position = @constrainPosition body.position
@@ -242,3 +261,22 @@ window.WrappedWorld = class WrappedWorld extends World
     y += @sizeY while y <= 0
     [x % @sizeX, y % @sizeY]
 
+
+window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
+
+  collisions: (contacts) ->
+    bumped = []
+    for contact in contacts
+      if contact.from.ship
+        bumped.push contact.to
+      if contact.to.ship
+        bumped.push contact.from
+
+    for asteroid in _.uniq bumped
+      asteroid.toggleColor asteroid.originalColor
+
+  particleCollisions: (contacts) ->
+    for contact in contacts
+      continue if contact.body.ship
+      contact.particle.alive = false
+      contact.body.toggleColor contact.particle.color

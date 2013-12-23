@@ -7,9 +7,9 @@ class Simulation
     scale  = 50
     @width  = Math.floor(window.innerWidth / scale) - 1
     @height = Math.floor(window.innerHeight / scale) - 1
+    @width = Math.min(@width, @height)
+    @height = Math.min(@width, @height)
 
-    @width = 8
-    @height = 8
 
     @ctx = Sketch.create
       element: document.getElementById "display"
@@ -17,7 +17,7 @@ class Simulation
 
     @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
 
-    @world = new WrappedWorld @display, @width, @height
+    @world = new AsteroidWorld @display, @width, @height
 
     _.extend @ctx,
       update: =>
@@ -25,7 +25,17 @@ class Simulation
       draw: =>
         @world.draw()
       keydown: (e) =>
+        if e.keyCode is 32 # space
+          v = Vec.scale @ship.orientation, 5
+          p = new Particle 1,
+            position: @ship.position
+            velocity: Vec.add @ship.velocity, v
+            size: 2
+            color: "#F4A"
+            fade: true
+          @world.addParticle p
         @world.keydown e
+
       keyup: (e) =>
         @world.keyup e
       click: (e) =>
@@ -34,14 +44,12 @@ class Simulation
         x = e.x / scale - offsetX/2
         y = @height - (e.y / scale - offsetY/2)
 
-        for body, i in @world.bodies
-          [[left, bottom], [right, top]] = body.aabb()
-          if x > left and x < right and y > bottom and y < top
-            console.log "body #{i}", body
-
+        for body in @world.quadtree.atPoint [x, y]
+          if Geometry.pointInsidePolygon [x, y], body.vertices()
+            body.toggleColor "4F4"
 
     @setNewSeed() unless @seed
-    @initializeGUI()
+    # @initializeGUI()
 
     @reset()
 
@@ -57,8 +65,8 @@ class Simulation
 
     Utils.srand @seed
 
-    for controller in @gui.__controllers
-      controller.updateDisplay()
+    # for controller in @gui.__controllers
+    #   controller.updateDisplay()
 
     @generateBodies()
 
@@ -129,6 +137,8 @@ class Simulation
       density: 5
       thrust: 6
       turn: 5
+
+    @ship.ship = true
 
     # make the ship more resistant to spinning (helps with bounces)
     @ship.inverseMoment = @ship.inverseMoment / 4

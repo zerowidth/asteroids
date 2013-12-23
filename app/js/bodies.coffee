@@ -28,6 +28,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
   constructor: (size, opts = {}) ->
     @points = opts.points or @generatePoints(size/2)
     super opts
+    @originalColor = @color
 
     # Update position and offsets to match the calculated centroid, unless both
     # the position and vertices have been explicitly set.
@@ -76,6 +77,12 @@ window.Asteroid = class Asteroid extends PolygonalBody
   drawDebug: (display) ->
     super
     display.drawCircle @position, 2, "#444"
+
+  toggleColor: (color) ->
+    if color is @color
+      @color = @originalColor
+    else
+      @color = color
 
 window.Ship = class Ship extends PolygonalBody
   renderWith: 'custom'
