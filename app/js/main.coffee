@@ -44,12 +44,9 @@ class Simulation
         x = e.x / scale - offsetX/2
         y = @height - (e.y / scale - offsetY/2)
 
-        for body, i in @world.bodies
-          [[left, bottom], [right, top]] = body.aabb()
-          if x > left and x < right and y > bottom and y < top
-            console.log "body #{i}", body
-            console.log Geometry.pointInsidePolygon body.vertices(), [x, y]
-
+        for body in @world.quadtree.atPoint [x, y]
+          if Geometry.pointInsidePolygon body.vertices(), [x, y]
+            body.color = "#4F4"
 
     @setNewSeed() unless @seed
     # @initializeGUI()

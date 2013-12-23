@@ -38,7 +38,17 @@ window.QuadTree = class QuadTree
         top < node.bottom or bottom >= node.top
       found.push object[0] for object in node.objects
       true
-    found
+    _.uniq found
+
+  # Public: find the objects in the tree at the given point
+  atPoint: ([x, y]) ->
+    found = []
+    @walk (node) ->
+      return false if x < node.left or x >= node.right or
+        y < node.bottom or node.bottom >= y
+      found.push object[0] for object in node.objects
+      true
+    _.uniq found
 
   # Prefix iterator of each node in the tree.
   walk: (callback) ->
