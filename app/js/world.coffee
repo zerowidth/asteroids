@@ -270,7 +270,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     super e
     if e.keyCode is 32 # space
       v = Vec.scale @ship.orientation, 5
-      p = new Particle
+      @addParticle new Particle
         lifespan: 1
         position: @ship.tip()
         velocity: Vec.add @ship.velocity, v
@@ -278,7 +278,6 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         color: "#4FA"
         fade: true
         collides: true
-      @addParticle p
 
   collisions: (contacts) ->
     bumped = []
@@ -299,29 +298,28 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       continue if body.ship
       contact.particle.alive = false
 
+      @explosionAt particle.position
       @removeBody contact.body
-      @addShards particle.position, body.shatter particle.position
-
-  addShards: (position, shards) ->
-    for shard in shards
+      added = @addShards particle.position, body.shatter particle.position
+      for shard in added
+        if Geometry.pointInsidePolygon particle.position, shard.vertices()
+          @removeBody shard
+          shards = shard.shatter particle.position, body
+          added = added.concat @addShards particle.position, shards
 
       blastRadius = 1
       power = 1
 
 
+
+
+
+  addShards: (position, shards) ->
+    added = []
+    for shard in shards
       if shard.area > @ship.area / 20
-
-        direction = Vec.sub shard.position, position
-        distance  = Vec.magnitudeSquared direction
-        normal    = Vec.normalize direction
-        effect = 1 - (distance / blastRadius)
-
-        if effect > 0
-          impulse = Vec.scale normal, power * effect
-          before = shard.velocity
-          shard.applyImpulse impulse, shard.position
-
         @addBody shard
+        added.push shard
       else
         for point in shard.vertices()
           inward = Vec.normalize Vec.sub shard.position, point
@@ -334,3 +332,21 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
             velocity: velocity
             color: shard.color
             fade: true
+    added
+
+  explosionAt: (position) ->
+    num = Utils.randomInt(25, 50)
+    for i in [0..num]
+      direction = Rotation.fromAngle Utils.random() * Math.PI * 2
+      speed = Utils.random() * 2
+      green = Utils.randomInt(0, 255)
+      color = "rgba(255,#{green},32,1)"
+
+      @addParticle new Particle
+        lifespan: 0.5 + Utils.random() * 0.5
+        size: 2
+        position: position
+        velocity: Vec.scale direction, speed
+        damping: 0.05
+        color: color
+        fade: true

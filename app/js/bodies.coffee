@@ -94,7 +94,8 @@ window.Asteroid = class Asteroid extends PolygonalBody
       @color = color
 
   # shatter this asteroid into smaller asteroids, including a given location
-  shatter: (location) ->
+  shatter: (location, reference = null) ->
+    reference = reference or this
     aabb = @aabb()
     size = Math.max(aabb[1][0] - aabb[0][0], aabb[1][1] - aabb[0][1]) / 8
     points = Utils.distributeRandomPoints aabb[0], aabb[1], size, [location]
@@ -120,7 +121,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
         points: polygon
         density: @density
         color: @color
-      shard.velocity = Vec.add @velocity, @angularVelocityAt shard.position
+      shard.velocity = Vec.add @velocity, reference.angularVelocityAt shard.position
       shards.push shard
 
     shards
