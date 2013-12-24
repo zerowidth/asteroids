@@ -16,6 +16,7 @@ window.Particle = class Particle
     @size     = opts.size if opts.size
     @color    = opts.color if opts.color
     @fade     = opts.fade
+    @collides = opts.collides
 
     @life = 0
 

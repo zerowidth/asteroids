@@ -129,12 +129,9 @@ window.Ship = class Ship extends PolygonalBody
   # Internal: Based on the calculated centroid, adjust the position and point
   # offsets so they match up.
   recalculateCentroid: ->
-    offset = Vec.transform @centroidOffset, [0, 0], @orientation
-    @drawOffsets = (Vec.sub point, offset for point in @drawOffsets)
-    @shapeOffsets = (Vec.sub point, offset for point in @shapeOffsets)
-    @centroidOffset = [0, 0]
 
   vertices: -> @cachedVertices ?= @transform @shapeOffsets, @size
+  verticesForPhysics: -> @shapeOffsets
 
   integrate: (dt, keyboard) ->
     if keyboard.up
