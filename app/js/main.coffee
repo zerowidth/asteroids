@@ -25,7 +25,8 @@ class Simulation
       update: =>
         @world.update @ctx.dt
       draw: =>
-        @display.drawPolygons @polygons, "#444"
+        @display.drawPolygons [@container, @triangle], "#888"
+        @display.drawPolygons [@fixed], "#F00"
         @world.draw()
       keydown: (e) =>
         if e.keyCode is 32 # space
@@ -47,6 +48,8 @@ class Simulation
         x = e.x / scale - offsetX/2
         y = @height - (e.y / scale - offsetY/2)
 
+        console.log "click", [x, y]
+        return
 
         @polygons = []
         @world.removeAllParticles()
@@ -178,12 +181,36 @@ class Simulation
     @world.track @ship
 
   generateDebug: ->
-    @asteroids = []
-    @asteroids.push new Asteroid @width,
-      position: [@width / 2, @height / 2]
-      density: 10
-      color: "#CCC"
-    @world.addBody a for a in @asteroids
+    # @asteroids = []
+    # @asteroids.push new Asteroid @width,
+    #   position: [@width / 2, @height / 2]
+    #   density: 10
+    #   color: "#CCC"
+    # @world.addBody a for a in @asteroids
+
+    @container = [
+      [@width/2 - 4, @height/2 - 4]
+      [@width/2 + 4, @height/2 - 4]
+      [@width/2 + 4, @height/2 + 4]
+      [@width/2 - 4, @height/2 + 4]
+    ]
+
+    @triangle = [
+      # just the tip outside
+      # [@width / 2, @height/2 + 6]
+      # [@width / 2 - 2, @height/2 + 2]
+      # [@width / 2 + 2, @height/2 + 2]
+      # inverted, shifted
+      [3.9 + @width / 2 + 2, @height/2 + 6]
+      [3.9 + @width / 2 - 2, @height/2 + 6]
+      [3.9 + @width / 2, @height/2 + 2]
+      # inverted:
+      # [@width / 2 + 2, @height/2 + 6]
+      # [@width / 2 - 2, @height/2 + 6]
+      # [@width / 2, @height/2 + 2]
+    ]
+
+    @fixed = Geometry.constrainPolygonToContainer @triangle, @container
 
 window.go = -> window.simulation = new Simulation
 
