@@ -157,27 +157,32 @@ window.Geometry = Geometry =
   constrainPolygonToContainer: (vertices, container) ->
     for constraint in Utils.sequentialPairs container
       clipped   = []
-      # don't need an actually normalized normal, just the direction.
-      normal    = Vec.perpendicular Vec.sub constraint[1], constraint[0]
+      normal    = Vec.perpendicularNormal Vec.sub constraint[1], constraint[0]
       reference = constraint[0]
 
       for [prev, vertex] in Utils.sequentialPairs vertices
         test     = Vec.sub vertex, reference
         prevTest = Vec.sub prev, reference
-        if Vec.dotProduct(test, normal) >= 0 # vertex is inside the container
-          if Vec.dotProduct(prevTest, normal) < 0 # prev is outside container
+        if Vec.dotProduct(test, normal) > 0 # vertex is inside the container
+          if Vec.dotProduct(prevTest, normal) <= 0 # prev is outside container
             clipped.push @lineSegmentIntersection prev, vertex, reference, normal
           clipped.push vertex
-        else if Vec.dotProduct(prevTest, normal) >= 0 # prev is inside container
+        else if Vec.dotProduct(prevTest, normal) > 0 # prev is inside container
           clipped.push @lineSegmentIntersection prev, vertex, reference, normal
       vertices = clipped
-    vertices
+    @coalesceVertices vertices # precision errors lead to extra vertices, sometimes
 
   # intersection point of a segment from A to B to with the line defined by a point and a normal.
   lineSegmentIntersection: (vertexA, vertexB, point, normal) ->
     direction = Vec.sub vertexB, vertexA
     distance  = Vec.dotProduct(Vec.sub(point, vertexA), normal) / Vec.dotProduct(direction, normal)
     Vec.add vertexA, Vec.scale(direction, distance)
+
+  coalesceVertices: (vertices) ->
+    coalesced = []
+    for pair in Utils.sequentialPairs vertices
+      coalesced.push pair[0] unless Vec.distanceSquared(pair...) < 0.001
+    coalesced
 
 class Edge
   constructor: (@deepest, @from, @to) ->
