@@ -143,19 +143,19 @@ window.Utils = Utils =
     min + Math.floor(@random() * (max - min))
 
   # Use Mitchell's best-candidate method for distributing points randomly:
-  distributeRandomPoints: ([xmin, ymin], [xmax, ymax], radius) ->
+  distributeRandomPoints: ([xmin, ymin], [xmax, ymax], radius, list = null) ->
     # keep generated points away from the edges
-    xmin += radius
-    xmax -= radius
-    ymin += radius
-    ymax -= radius
+    xmin += radius/2
+    xmax -= radius/2
+    ymin += radius/2
+    ymax -= radius/2
 
     # a guess as to how many to try and generate: grid of size r, so:
     n = Math.ceil (xmax - xmin) * (ymax - ymin) / (radius * radius)
 
     k = 5 # how many candidates to examine
 
-    list = [@randomPoint(xmin, xmax, ymin, ymax)]
+    list ?= [@randomPoint(xmin, xmax, ymin, ymax)]
 
     for iteration in [0...n]
       candidates = for _ in [0...k]

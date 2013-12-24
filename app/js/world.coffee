@@ -136,6 +136,7 @@ window.World = class World
   generateParticleContacts: ->
     contacts = []
     for particle in @particles
+      continue unless particle.collides?
       for body in @quadtree.atPoint particle.position
         if Geometry.pointInsidePolygon particle.position, body.vertices()
           contacts.push new ParticleContact particle, body
@@ -185,6 +186,7 @@ window.World = class World
         @display.drawCircle @camera1, 3, "#0FF"
         @display.drawCircle @camera2, 3, "#0AF"
 
+    body.drawDebug(@display, @debugSettings) for body in @bodies
     # @stats.update()
 
 window.WrappedWorld = class WrappedWorld extends World

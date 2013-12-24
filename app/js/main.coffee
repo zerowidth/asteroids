@@ -10,7 +10,6 @@ class Simulation
     @width = Math.min(@width, @height)
     @height = Math.min(@width, @height)
 
-
     @ctx = Sketch.create
       element: document.getElementById "display"
       # retina: true
@@ -19,10 +18,14 @@ class Simulation
 
     @world = new AsteroidWorld @display, @width, @height
 
+    @world.debugSettings.drawAABB = true
+    @polygons = []
+
     _.extend @ctx,
       update: =>
         @world.update @ctx.dt
       draw: =>
+        @display.drawPolygons @polygons, "#444"
         @world.draw()
       keydown: (e) =>
         if e.keyCode is 32 # space
@@ -44,9 +47,36 @@ class Simulation
         x = e.x / scale - offsetX/2
         y = @height - (e.y / scale - offsetY/2)
 
+
+        @polygons = []
+        @world.removeAllParticles()
         for body in @world.quadtree.atPoint [x, y]
           if Geometry.pointInsidePolygon [x, y], body.vertices()
-            body.toggleColor "4F4"
+            # body.toggleColor "4F4"
+
+            aabb = body.aabb()
+            points = Utils.distributeRandomPoints aabb[0], aabb[1], 1, [[x, y]]
+            points = _.filter points, (point) => Geometry.pointInsidePolygon point, body.vertices()
+            for pos in points
+              p = new Particle 10,
+                position: pos
+                size: 2
+                color: "#F00"
+                fade: true
+              @world.addParticle p
+
+            sites = ({x: x, y: y} for [x, y] in points)
+            voronoi = new Voronoi()
+            bounds = {xl: aabb[0][0], xr: aabb[1][0], yt: aabb[0][1], yb: aabb[1][1]}
+            result = voronoi.compute sites, bounds
+
+            for cell in result.cells
+              polygon = []
+              for edge in cell.halfedges
+                a = edge.getStartpoint()
+                b = edge.getEndpoint()
+                polygon.push [a.x, a.y], [b.x, b.y]
+              @polygons.push polygon
 
     @setNewSeed() unless @seed
     # @initializeGUI()
@@ -68,7 +98,8 @@ class Simulation
     # for controller in @gui.__controllers
     #   controller.updateDisplay()
 
-    @generateBodies()
+    # @generateBodies()
+    @generateDebug()
 
   generateRandomPoints: ->
     for pos in Utils.distributeRandomPoints [0, 0], [@width, @height], 1
@@ -145,6 +176,14 @@ class Simulation
 
     @world.addBody @ship
     @world.track @ship
+
+  generateDebug: ->
+    @asteroids = []
+    @asteroids.push new Asteroid @width,
+      position: [@width / 2, @height / 2]
+      density: 10
+      color: "#CCC"
+    @world.addBody a for a in @asteroids
 
 window.go = -> window.simulation = new Simulation
 
