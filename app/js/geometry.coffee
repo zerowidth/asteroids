@@ -178,6 +178,20 @@ window.Geometry = Geometry =
     distance  = Vec.dotProduct(Vec.sub(point, vertexA), normal) / Vec.dotProduct(direction, normal)
     Vec.add vertexA, Vec.scale(direction, distance)
 
+  # Adjust the list of vertices to ensure counterclockwise winding
+  normalizeWinding: (vertices) ->
+    a = vertices[0]
+    b = vertices[1]
+    c = vertices[2]
+
+    baNormal = Vec.perpendicular Vec.sub(b, a)
+    projection = Vec.dotProduct Vec.sub(c, b), baNormal
+    if projection > 0
+      vertices
+    else
+      vertices.reverse()
+    vertices
+
   coalesceVertices: (vertices) ->
     coalesced = []
     for pair in Utils.sequentialPairs vertices

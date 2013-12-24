@@ -18,14 +18,11 @@ class Simulation
 
     @world = new AsteroidWorld @display, @width, @height
 
-    @world.debugSettings.drawAABB = true
-    @polygons = []
 
     _.extend @ctx,
       update: =>
         @world.update @ctx.dt
       draw: =>
-        @display.drawPolygons @polygons, "#888"
         @world.draw()
       keydown: (e) =>
         if e.keyCode is 32 # space
@@ -47,14 +44,21 @@ class Simulation
         x = e.x / scale - offsetX/2
         y = @height - (e.y / scale - offsetY/2)
 
-        @polygons = []
+        if @world.keyboard.shift
+          console.log "click", [x, y]
+          for body in @world.quadtree.atPoint [x, y]
+            if Geometry.pointInsidePolygon [x, y], body.vertices()
+              console.log "got body", body
+          return
+
         @world.removeAllParticles()
         for body in @world.quadtree.atPoint [x, y]
           if Geometry.pointInsidePolygon [x, y], body.vertices()
             # body.toggleColor "4F4"
 
             aabb = body.aabb()
-            points = Utils.distributeRandomPoints aabb[0], aabb[1], 1, [[x, y]]
+            size = Math.max(aabb[1][0] - aabb[0][0], aabb[1][1] - aabb[0][1]) / 8
+            points = Utils.distributeRandomPoints aabb[0], aabb[1], size, [[x, y]]
             points = _.filter points, (point) => Geometry.pointInsidePolygon point, body.vertices()
             for pos in points
               p = new Particle 10,
@@ -68,15 +72,24 @@ class Simulation
             voronoi = new Voronoi()
             bounds = {xl: aabb[0][0], xr: aabb[1][0], yt: aabb[0][1], yb: aabb[1][1]}
             result = voronoi.compute sites, bounds
+            @world.removeBody body
 
             for cell in result.cells
               polygon = []
               for edge in cell.halfedges
                 a = edge.getStartpoint()
-                b = edge.getEndpoint()
-                polygon.push [a.x, a.y], [b.x, b.y]
+                polygon.push [a.x, a.y]
+
+              polygon = Geometry.normalizeWinding polygon
               polygon = Geometry.constrainPolygonToContainer polygon, body.vertices()
-              @polygons.push polygon unless polygon.length is 0
+              continue unless polygon.length > 2
+
+              shard = new Asteroid 1,
+                points: polygon
+                density: body.density
+                color: body.color
+              shard.velocity = Vec.add body.velocity, body.angularVelocityAt shard.position
+              @world.addBody shard
 
     @setNewSeed() unless @seed
     # @initializeGUI()
@@ -179,8 +192,10 @@ class Simulation
 
   generateDebug: ->
     @asteroids = []
-    @asteroids.push new Asteroid @width,
+    @asteroids.push new Asteroid @width/2,
       position: [@width / 2, @height / 2]
+      # velocity: [0, 1]
+      angularVelocity: Math.PI
       density: 10
       color: "#CCC"
     @world.addBody a for a in @asteroids
