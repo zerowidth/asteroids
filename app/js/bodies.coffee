@@ -87,15 +87,43 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
     points
 
-  drawDebug: (display) ->
-    super
-    display.drawCircle @position, 2, "#444"
-
   toggleColor: (color) ->
     if color is @color
       @color = @originalColor
     else
       @color = color
+
+  # shatter this asteroid into smaller asteroids, including a given location
+  shatter: (location) ->
+    aabb = @aabb()
+    size = Math.max(aabb[1][0] - aabb[0][0], aabb[1][1] - aabb[0][1]) / 8
+    points = Utils.distributeRandomPoints aabb[0], aabb[1], size, [location]
+    points = _.filter points, (point) => Geometry.pointInsidePolygon point, @vertices()
+
+    sites = ({x: x, y: y} for [x, y] in points)
+    voronoi = new Voronoi()
+    bounds = {xl: aabb[0][0], xr: aabb[1][0], yt: aabb[0][1], yb: aabb[1][1]}
+    result = voronoi.compute sites, bounds
+
+    shards = []
+    for cell in result.cells
+      polygon = []
+      for edge in cell.halfedges
+        a = edge.getStartpoint()
+        polygon.push [a.x, a.y]
+
+      polygon = Geometry.normalizeWinding polygon
+      polygon = Geometry.constrainPolygonToContainer polygon, @vertices()
+      continue unless polygon.length > 2
+
+      shard = new Asteroid null,
+        points: polygon
+        density: @density
+        color: @color
+      shard.velocity = Vec.add @velocity, @angularVelocityAt shard.position
+      shards.push shard
+
+    shards
 
 window.Ship = class Ship extends PolygonalBody
   renderWith: 'custom'
@@ -132,6 +160,9 @@ window.Ship = class Ship extends PolygonalBody
 
   vertices: -> @cachedVertices ?= @transform @shapeOffsets, @size
   verticesForPhysics: -> @shapeOffsets
+
+  # the vertex at the front of the ship
+  tip: -> @vertices()[1]
 
   integrate: (dt, keyboard) ->
     if keyboard.up

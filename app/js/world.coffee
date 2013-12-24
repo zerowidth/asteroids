@@ -177,7 +177,6 @@ window.World = class World
         polygons = (body.vertices() for body in bodies)
         centers = (body.position for body in bodies)
         @display.drawPolygons polygons, color
-        @display.drawCircles centers, 2, "#444"
 
       for body in bodiesByType.custom or []
         body.draw @display
@@ -187,6 +186,7 @@ window.World = class World
         @display.drawCircle @camera2, 3, "#0AF"
 
     body.drawDebug(@display, @debugSettings) for body in @bodies
+
     # @stats.update()
 
 window.WrappedWorld = class WrappedWorld extends World
@@ -270,8 +270,9 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     super e
     if e.keyCode is 32 # space
       v = Vec.scale @ship.orientation, 5
-      p = new Particle 1,
-        position: @ship.position
+      p = new Particle
+        lifespan: 1
+        position: @ship.tip()
         velocity: Vec.add @ship.velocity, v
         size: 2
         color: "#4FA"
@@ -298,41 +299,38 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       continue if body.ship
       contact.particle.alive = false
 
-      aabb = body.aabb()
-      size = Math.max(aabb[1][0] - aabb[0][0], aabb[1][1] - aabb[0][1]) / 8
-      points = Utils.distributeRandomPoints aabb[0], aabb[1], size, [particle.position]
-      points = _.filter points, (point) => Geometry.pointInsidePolygon point, body.vertices()
+      @removeBody contact.body
+      @addShards particle.position, body.shatter particle.position
 
-      sites = ({x: x, y: y} for [x, y] in points)
-      voronoi = new Voronoi()
-      bounds = {xl: aabb[0][0], xr: aabb[1][0], yt: aabb[0][1], yb: aabb[1][1]}
-      result = voronoi.compute sites, bounds
-      @removeBody body
+  addShards: (position, shards) ->
+    for shard in shards
 
-      for cell in result.cells
-        polygon = []
-        for edge in cell.halfedges
-          a = edge.getStartpoint()
-          polygon.push [a.x, a.y]
+      blastRadius = 1
+      power = 1
 
-        polygon = Geometry.normalizeWinding polygon
-        polygon = Geometry.constrainPolygonToContainer polygon, body.vertices()
-        continue unless polygon.length > 2
 
-        shard = new Asteroid 1,
-          points: polygon
-          density: body.density
-          color: body.color
-        shard.velocity = Vec.add body.velocity, body.angularVelocityAt shard.position
+      if shard.area > @ship.area / 20
 
-        if shard.area > @ship.area / 20
-          @addBody shard
-        else
-          for point in shard.vertices()
-            p = new Particle 2,
-              size: 2
-              position: shard.position
-              velocity: Vec.add shard.velocity, Vec.sub shard.position, point
-              color: shard.color
-              fade: true
-            @addParticle p
+        direction = Vec.sub shard.position, position
+        distance  = Vec.magnitudeSquared direction
+        normal    = Vec.normalize direction
+        effect = 1 - (distance / blastRadius)
+
+        if effect > 0
+          impulse = Vec.scale normal, power * effect
+          before = shard.velocity
+          shard.applyImpulse impulse, shard.position
+
+        @addBody shard
+      else
+        for point in shard.vertices()
+          inward = Vec.normalize Vec.sub shard.position, point
+          velocity = Vec.add shard.velocity, Vec.scale inward, Utils.random()
+
+          @addParticle new Particle
+            lifespan: 2
+            size: 2
+            position: shard.position
+            velocity: velocity
+            color: shard.color
+            fade: true

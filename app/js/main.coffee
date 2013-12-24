@@ -89,7 +89,7 @@ class Simulation
   generateBodies: ->
     @asteroids = []
 
-    avgSize = sizeDelta = 1.5
+    avgSize = sizeDelta = 3
     deltaVelocity = 2
     deltaTheta = Math.PI
 
