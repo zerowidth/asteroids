@@ -42,6 +42,15 @@ Vec =
   magnitude: ([x,y]) ->
     Math.sqrt(x*x + y*y)
 
+  magnitudeSquared: ([x,y]) ->
+    (x * x + y * y)
+
+  distance: (a, b) ->
+    @magnitude @sub b, a
+
+  distanceSquared: (a, b) ->
+    @magnitudeSquared @sub b, a
+
   # | a b c |   | x |   | ax + by + c |
   # | e f g | * | y | = | ex + fy + g |
   #             | 1 |
