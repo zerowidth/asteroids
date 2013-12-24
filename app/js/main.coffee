@@ -25,8 +25,7 @@ class Simulation
       update: =>
         @world.update @ctx.dt
       draw: =>
-        @display.drawPolygons [@container, @triangle], "#888"
-        @display.drawPolygons [@fixed], "#F00"
+        @display.drawPolygons @polygons, "#888"
         @world.draw()
       keydown: (e) =>
         if e.keyCode is 32 # space
@@ -47,9 +46,6 @@ class Simulation
         offsetY = (window.innerHeight / scale) - @height
         x = e.x / scale - offsetX/2
         y = @height - (e.y / scale - offsetY/2)
-
-        console.log "click", [x, y]
-        return
 
         @polygons = []
         @world.removeAllParticles()
@@ -79,7 +75,8 @@ class Simulation
                 a = edge.getStartpoint()
                 b = edge.getEndpoint()
                 polygon.push [a.x, a.y], [b.x, b.y]
-              @polygons.push polygon
+              polygon = Geometry.constrainPolygonToContainer polygon, body.vertices()
+              @polygons.push polygon unless polygon.length is 0
 
     @setNewSeed() unless @seed
     # @initializeGUI()
@@ -181,36 +178,12 @@ class Simulation
     @world.track @ship
 
   generateDebug: ->
-    # @asteroids = []
-    # @asteroids.push new Asteroid @width,
-    #   position: [@width / 2, @height / 2]
-    #   density: 10
-    #   color: "#CCC"
-    # @world.addBody a for a in @asteroids
-
-    @container = [
-      [@width/2 - 4, @height/2 - 4]
-      [@width/2 + 4, @height/2 - 4]
-      [@width/2 + 4, @height/2 + 4]
-      [@width/2 - 4, @height/2 + 4]
-    ]
-
-    @triangle = [
-      # just the tip outside
-      # [@width / 2, @height/2 + 6]
-      # [@width / 2 - 2, @height/2 + 2]
-      # [@width / 2 + 2, @height/2 + 2]
-      # inverted, shifted
-      [3.9 + @width / 2 + 2, @height/2 + 6]
-      [3.9 + @width / 2 - 2, @height/2 + 6]
-      [3.9 + @width / 2, @height/2 + 2]
-      # inverted:
-      # [@width / 2 + 2, @height/2 + 6]
-      # [@width / 2 - 2, @height/2 + 6]
-      # [@width / 2, @height/2 + 2]
-    ]
-
-    @fixed = Geometry.constrainPolygonToContainer @triangle, @container
+    @asteroids = []
+    @asteroids.push new Asteroid @width,
+      position: [@width / 2, @height / 2]
+      density: 10
+      color: "#CCC"
+    @world.addBody a for a in @asteroids
 
 window.go = -> window.simulation = new Simulation
 
