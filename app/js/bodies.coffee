@@ -26,32 +26,45 @@ window.Asteroid = class Asteroid extends PolygonalBody
   #        points   - [ [x,y] ...] vertices, relative to specified position.
   #
   constructor: (size, opts = {}) ->
-    @points = opts.points or @generatePoints(size/2)
+    if opts.points
+      opts.orientation = [1, 0]
+      opts.position = [0,0]
+      @points = opts.points
+    else
+      center = opts.position or [0, 0]
+      opts.position = [0, 0]
+      @points = @generatePoints center, size/2
+
     super opts
+
     @originalColor = @color
 
     # Update position and offsets to match the calculated centroid, unless both
     # the position and vertices have been explicitly set.
-    @recalculateCentroid() unless opts.position and opts.vertices
+    @recalculateCentroid()
 
   # Internal: Based on the calculated centroid, adjust the position and point
   # offsets so they match up.
+  # The centroid offset assumes vertices with only translation (the position)
+  # involved, not orientation.
   recalculateCentroid: ->
-    offset = Vec.transform @centroidOffset, [0, 0], @orientation
+    offset = Vec.sub @centroid, @position
     @points = (Vec.sub point, offset for point in @points)
-    @centroidOffset = [0, 0]
+    @position = @centroid
 
   vertices: -> @cachedVertices ?= @transform @points
+  verticesForPhysics: -> @points
 
-  # Internal: generate a somewhat randomized asteroid shape.
-  generatePoints: (radius) ->
+  # Internal: generate a somewhat randomized asteroid shape around a specific
+  # point in world coordinates
+  generatePoints: (center, radius) ->
     n = Utils.randomInt 7, 13
     wedgeSize = 2 * Math.PI / n
 
     points = for i in [0...n]
       r = radius - (Utils.random() * radius/2)
       theta = i * wedgeSize + (Utils.random() * wedgeSize/1.5 - wedgeSize/3)
-      [ r * Math.cos(theta), r * Math.sin(theta) ]
+      [ center[0] + r * Math.cos(theta), center[1] + r * Math.sin(theta) ]
 
     @convexify points
 

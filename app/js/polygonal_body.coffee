@@ -76,6 +76,11 @@ window.PolygonalBody = class PolygonalBody
   # polygonal body.
   vertices: -> []
 
+  # Internal: the vertices for physics calculations. Should only take
+  # translation into account, not orientation, for easier inverse mapping when
+  # adjusting a centroid.
+  verticesForPhysics: -> @vertices()
+
   # Internal: transform a series of points based on position and orientation.
   transform: (points, scale = 1) ->
     (Vec.transform point, @position, @orientation, scale for point in points)
@@ -145,7 +150,7 @@ window.PolygonalBody = class PolygonalBody
     Geometry.contactPoints this, other, offset
 
   calculatePhysicalProperties: ->
-    vertices = @vertices()
+    vertices = @verticesForPhysics()
 
     ix   = 0
     iy   = 0
@@ -162,11 +167,12 @@ window.PolygonalBody = class PolygonalBody
       cx   += (x0 + x1) * a
       cy   += (y0 + y1) * a
 
-    ix   = ix / 12
-    iy   = iy / 12
-    area = Math.abs(area) / 2
-    cx   = cx / (6 * area)
-    cy   = cy / (6 * area)
+    ix         = ix / 12
+    iy         = iy / 12
+    signedArea = area / 2
+    area       = Math.abs signedArea
+    cx         = cx / (6 * signedArea)
+    cy         = cy / (6 * signedArea)
 
     # parallel axis theorem to recenter moment around centroid
     ix = ix - area * cx * cx
@@ -183,10 +189,11 @@ window.PolygonalBody = class PolygonalBody
       moment         = (mass / area) * momentOfArea
       @inverseMoment = 1/moment
 
-    # Store the difference between the calculated centroid and position. This
-    # should always be [0, 0] but the value is stored for future correction if
-    # it differs.
-    @centroidOffset = Vec.sub [cx, cy], @position
+    # Store the calculated centroid. It should always be [0, 0] but the value is
+    # stored for future correction if it differs.
+    @centroid = [cx, cy]
+
+    @area = area
 
   relativePositionAt: (point, offset = [0,0]) ->
     Vec.sub point, Vec.add @position, offset
