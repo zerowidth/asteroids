@@ -297,22 +297,17 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
       continue if body.ship
       contact.particle.alive = false
+      continue if contact.body.deleted
 
       @explosionAt particle.position
       @removeBody contact.body
+      contact.body.deleted = true
       added = @addShards particle.position, body.shatter particle.position
       for shard in added
         if Geometry.pointInsidePolygon particle.position, shard.vertices()
           @removeBody shard
           shards = shard.shatter particle.position, body
           added = added.concat @addShards particle.position, shards
-
-      blastRadius = 1
-      power = 1
-
-
-
-
 
   addShards: (position, shards) ->
     added = []
