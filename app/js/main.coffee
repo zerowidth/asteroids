@@ -10,7 +10,6 @@ class Simulation
     @width = Math.min(@width, @height)
     @height = Math.min(@width, @height)
 
-
     @ctx = Sketch.create
       element: document.getElementById "display"
       # retina: true
@@ -19,21 +18,13 @@ class Simulation
 
     @world = new AsteroidWorld @display, @width, @height
 
+
     _.extend @ctx,
       update: =>
         @world.update @ctx.dt
       draw: =>
         @world.draw()
       keydown: (e) =>
-        if e.keyCode is 32 # space
-          v = Vec.scale @ship.orientation, 5
-          p = new Particle 1,
-            position: @ship.position
-            velocity: Vec.add @ship.velocity, v
-            size: 2
-            color: "#F4A"
-            fade: true
-          @world.addParticle p
         @world.keydown e
 
       keyup: (e) =>
@@ -44,9 +35,10 @@ class Simulation
         x = e.x / scale - offsetX/2
         y = @height - (e.y / scale - offsetY/2)
 
+        console.log "click", [x, y]
         for body in @world.quadtree.atPoint [x, y]
           if Geometry.pointInsidePolygon [x, y], body.vertices()
-            body.toggleColor "4F4"
+            console.log "got body", body
 
     @setNewSeed() unless @seed
     # @initializeGUI()
@@ -69,15 +61,7 @@ class Simulation
     #   controller.updateDisplay()
 
     @generateBodies()
-
-  generateRandomPoints: ->
-    for pos in Utils.distributeRandomPoints [0, 0], [@width, @height], 1
-      p = new Particle 2,
-        position: pos
-        size: 2
-        color: "#F00"
-        fade: true
-      @world.addParticle p
+    # @generateDebug()
 
   setNewSeed: ->
     @seed = Math.floor(Math.random() * 10000000)
@@ -105,7 +89,7 @@ class Simulation
   generateBodies: ->
     @asteroids = []
 
-    avgSize = sizeDelta = 1.5
+    avgSize = sizeDelta = 3
     deltaVelocity = 2
     deltaTheta = Math.PI
 
@@ -144,7 +128,18 @@ class Simulation
     @ship.inverseMoment = @ship.inverseMoment / 4
 
     @world.addBody @ship
+    @world.ship = @ship
     @world.track @ship
+
+  generateDebug: ->
+    @asteroids = []
+    @asteroids.push new Asteroid @width/2,
+      position: [@width / 2, @height / 2]
+      # velocity: [0, 1]
+      angularVelocity: Math.PI
+      density: 10
+      color: "#CCC"
+    @world.addBody a for a in @asteroids
 
 window.go = -> window.simulation = new Simulation
 

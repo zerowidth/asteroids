@@ -26,32 +26,45 @@ window.Asteroid = class Asteroid extends PolygonalBody
   #        points   - [ [x,y] ...] vertices, relative to specified position.
   #
   constructor: (size, opts = {}) ->
-    @points = opts.points or @generatePoints(size/2)
+    if opts.points
+      opts.orientation = [1, 0]
+      opts.position = [0,0]
+      @points = opts.points
+    else
+      center = opts.position or [0, 0]
+      opts.position = [0, 0]
+      @points = @generatePoints center, size/2
+
     super opts
+
     @originalColor = @color
 
     # Update position and offsets to match the calculated centroid, unless both
     # the position and vertices have been explicitly set.
-    @recalculateCentroid() unless opts.position and opts.vertices
+    @recalculateCentroid()
 
   # Internal: Based on the calculated centroid, adjust the position and point
   # offsets so they match up.
+  # The centroid offset assumes vertices with only translation (the position)
+  # involved, not orientation.
   recalculateCentroid: ->
-    offset = Vec.transform @centroidOffset, [0, 0], @orientation
+    offset = Vec.sub @centroid, @position
     @points = (Vec.sub point, offset for point in @points)
-    @centroidOffset = [0, 0]
+    @position = @centroid
 
   vertices: -> @cachedVertices ?= @transform @points
+  verticesForPhysics: -> @points
 
-  # Internal: generate a somewhat randomized asteroid shape.
-  generatePoints: (radius) ->
+  # Internal: generate a somewhat randomized asteroid shape around a specific
+  # point in world coordinates
+  generatePoints: (center, radius) ->
     n = Utils.randomInt 7, 13
     wedgeSize = 2 * Math.PI / n
 
     points = for i in [0...n]
       r = radius - (Utils.random() * radius/2)
       theta = i * wedgeSize + (Utils.random() * wedgeSize/1.5 - wedgeSize/3)
-      [ r * Math.cos(theta), r * Math.sin(theta) ]
+      [ center[0] + r * Math.cos(theta), center[1] + r * Math.sin(theta) ]
 
     @convexify points
 
@@ -74,15 +87,44 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
     points
 
-  drawDebug: (display) ->
-    super
-    display.drawCircle @position, 2, "#444"
-
   toggleColor: (color) ->
     if color is @color
       @color = @originalColor
     else
       @color = color
+
+  # shatter this asteroid into smaller asteroids, including a given location
+  shatter: (location, reference = null) ->
+    reference = reference or this
+    aabb = @aabb()
+    size = Math.max(aabb[1][0] - aabb[0][0], aabb[1][1] - aabb[0][1]) / 8
+    points = Utils.distributeRandomPoints aabb[0], aabb[1], size, [location]
+    points = _.filter points, (point) => Geometry.pointInsidePolygon point, @vertices()
+
+    sites = ({x: x, y: y} for [x, y] in points)
+    voronoi = new Voronoi()
+    bounds = {xl: aabb[0][0], xr: aabb[1][0], yt: aabb[0][1], yb: aabb[1][1]}
+    result = voronoi.compute sites, bounds
+
+    shards = []
+    for cell in result.cells
+      polygon = []
+      for edge in cell.halfedges
+        a = edge.getStartpoint()
+        polygon.push [a.x, a.y]
+
+      polygon = Geometry.normalizeWinding polygon
+      polygon = Geometry.constrainPolygonToContainer polygon, @vertices()
+      continue unless polygon.length > 2
+
+      shard = new Asteroid null,
+        points: polygon
+        density: @density
+        color: @color
+      shard.velocity = Vec.add @velocity, reference.angularVelocityAt shard.position
+      shards.push shard
+
+    shards
 
 window.Ship = class Ship extends PolygonalBody
   renderWith: 'custom'
@@ -108,6 +150,8 @@ window.Ship = class Ship extends PolygonalBody
     # drawn shape is convex, so handle the physics shape separately
     @drawOffsets = [ [0.9, -0.1], [1, 0], [0.9, 0.1], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
     @shapeOffsets = [ [0.9, -0.1], [1, 0], [0.9, 0.1], [-0.5, 0.5], [-0.5, -0.5] ]
+    @drawOffsets = (Vec.scale offset, @size for offset in @drawOffsets)
+    @shapeOffsets = (Vec.scale offset, @size for offset in @shapeOffsets)
 
     super opts
 
@@ -116,12 +160,12 @@ window.Ship = class Ship extends PolygonalBody
   # Internal: Based on the calculated centroid, adjust the position and point
   # offsets so they match up.
   recalculateCentroid: ->
-    offset = Vec.transform @centroidOffset, [0, 0], @orientation
-    @drawOffsets = (Vec.sub point, offset for point in @drawOffsets)
-    @shapeOffsets = (Vec.sub point, offset for point in @shapeOffsets)
-    @centroidOffset = [0, 0]
 
-  vertices: -> @cachedVertices ?= @transform @shapeOffsets, @size
+  vertices: -> @cachedVertices ?= @transform @shapeOffsets
+  verticesForPhysics: -> @shapeOffsets
+
+  # the vertex at the front of the ship
+  tip: -> @vertices()[1]
 
   integrate: (dt, keyboard) ->
     if keyboard.up
@@ -154,4 +198,4 @@ window.Ship = class Ship extends PolygonalBody
 
       display.drawPolygons [flame], "#FB0", 0.25 + @flameLevel * 0.5
 
-    display.drawPolygons [@transform(@drawOffsets, @size)], @color
+    display.drawPolygons [@transform(@drawOffsets)], @color

@@ -1,5 +1,6 @@
 window.Particle = class Particle
   alive: true
+  lifespan: 1
 
   position: [0, 0]
   velocity: [0, 0]
@@ -9,13 +10,15 @@ window.Particle = class Particle
   color: "#888"
   fade: false
 
-  constructor: (@lifespan, opts = {}) ->
+  constructor: (opts = {}) ->
+    @lifespan = opts.lifespan if opts.lifespan
     @position = opts.position if opts.position
     @velocity = opts.velocity if opts.velocity
     @damping  = opts.damping if opts.damping
     @size     = opts.size if opts.size
     @color    = opts.color if opts.color
     @fade     = opts.fade
+    @collides = opts.collides
 
     @life = 0
 

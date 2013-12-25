@@ -136,6 +136,7 @@ window.World = class World
   generateParticleContacts: ->
     contacts = []
     for particle in @particles
+      continue unless particle.collides
       for body in @quadtree.atPoint particle.position
         if Geometry.pointInsidePolygon particle.position, body.vertices()
           contacts.push new ParticleContact particle, body
@@ -176,7 +177,6 @@ window.World = class World
         polygons = (body.vertices() for body in bodies)
         centers = (body.position for body in bodies)
         @display.drawPolygons polygons, color
-        @display.drawCircles centers, 2, "#444"
 
       for body in bodiesByType.custom or []
         body.draw @display
@@ -184,6 +184,8 @@ window.World = class World
       if @tracking and @debugSettings.drawCamera
         @display.drawCircle @camera1, 3, "#0FF"
         @display.drawCircle @camera2, 3, "#0AF"
+
+    body.drawDebug(@display, @debugSettings) for body in @bodies
 
     # @stats.update()
 
@@ -264,6 +266,15 @@ window.WrappedWorld = class WrappedWorld extends World
 
 window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
+  keydown: (e) ->
+    super e
+    if e.keyCode is 32 or e.keyCode is 40 # space or down
+      v = Vec.scale @ship.orientation, 5
+      @fireMissile @ship.tip(), Vec.add @ship.velocity, v
+    if e.keyCode is 88 # x
+      v = Vec.scale @ship.orientation, 3
+      @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
+
   collisions: (contacts) ->
     bumped = []
     for contact in contacts
@@ -277,6 +288,74 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
   particleCollisions: (contacts) ->
     for contact in contacts
-      continue if contact.body.ship
+      body     = contact.body
+      particle = contact.particle
+
+      continue if body.ship
       contact.particle.alive = false
-      contact.body.toggleColor contact.particle.color
+      continue if contact.body.deleted
+
+      if contact.particle.spawnMore
+        num = Utils.randomInt(10, 25)
+        for i in [0..num]
+          direction = Rotation.fromAngle Utils.random() * Math.PI * 2
+          velocity = Vec.scale direction, 2.5 + Utils.random() * 2.5
+          @fireMissile contact.particle.position, velocity
+
+      @explosionAt particle.position
+      @removeBody contact.body
+      contact.body.deleted = true
+      added = @addShards particle.position, body.shatter particle.position
+      for shard in added
+        if Geometry.pointInsidePolygon particle.position, shard.vertices()
+          @removeBody shard
+          shards = shard.shatter particle.position, body
+          added = added.concat @addShards particle.position, shards
+
+  addShards: (position, shards) ->
+    added = []
+    for shard in shards
+      if shard.area > @ship.area
+        @addBody shard
+        added.push shard
+      else
+        for point in shard.vertices()
+          inward = Vec.normalize Vec.sub shard.position, point
+          velocity = Vec.add shard.velocity, Vec.scale inward, Utils.random()
+
+          @addParticle new Particle
+            lifespan: 1 + Utils.random()
+            size: 2
+            position: shard.position
+            velocity: velocity
+            color: shard.color
+            fade: true
+    added
+
+  explosionAt: (position) ->
+    num = Utils.randomInt(25, 50)
+    for i in [0..num]
+      direction = Rotation.fromAngle Utils.random() * Math.PI * 2
+      speed = Utils.random() * 2
+      green = Utils.randomInt(0, 255)
+      color = "rgba(255,#{green},32,1)"
+
+      @addParticle new Particle
+        lifespan: Utils.random()
+        size: 2
+        position: position
+        velocity: Vec.scale direction, speed
+        color: color
+        fade: true
+
+  fireMissile: (position, velocity, size = 2, spawnMore = false) ->
+    missile = new Particle
+      lifespan: 1
+      position: position
+      velocity: velocity
+      size: size
+      color: "#4FA"
+      fade: true
+      collides: true
+    missile.spawnMore = spawnMore
+    @addParticle missile
