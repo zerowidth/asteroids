@@ -268,7 +268,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
   keydown: (e) ->
     super e
-    if e.keyCode is 32 # space
+    if e.keyCode is 32 or e.keyCode is 40 # space or down
       v = Vec.scale @ship.orientation, 5
       @fireMissile @ship.tip(), Vec.add @ship.velocity, v
     if e.keyCode is 88 # x
