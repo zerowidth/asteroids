@@ -150,6 +150,8 @@ window.Ship = class Ship extends PolygonalBody
     # drawn shape is convex, so handle the physics shape separately
     @drawOffsets = [ [0.9, -0.1], [1, 0], [0.9, 0.1], [-0.5, 0.5], [-0.25, 0], [-0.5, -0.5] ]
     @shapeOffsets = [ [0.9, -0.1], [1, 0], [0.9, 0.1], [-0.5, 0.5], [-0.5, -0.5] ]
+    @drawOffsets = (Vec.scale offset, @size for offset in @drawOffsets)
+    @shapeOffsets = (Vec.scale offset, @size for offset in @shapeOffsets)
 
     super opts
 
@@ -159,7 +161,7 @@ window.Ship = class Ship extends PolygonalBody
   # offsets so they match up.
   recalculateCentroid: ->
 
-  vertices: -> @cachedVertices ?= @transform @shapeOffsets, @size
+  vertices: -> @cachedVertices ?= @transform @shapeOffsets
   verticesForPhysics: -> @shapeOffsets
 
   # the vertex at the front of the ship
@@ -196,4 +198,4 @@ window.Ship = class Ship extends PolygonalBody
 
       display.drawPolygons [flame], "#FB0", 0.25 + @flameLevel * 0.5
 
-    display.drawPolygons [@transform(@drawOffsets, @size)], @color
+    display.drawPolygons [@transform(@drawOffsets)], @color

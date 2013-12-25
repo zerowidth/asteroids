@@ -315,7 +315,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
   addShards: (position, shards) ->
     added = []
     for shard in shards
-      if shard.area > @ship.area / 20
+      if shard.area > @ship.area
         @addBody shard
         added.push shard
       else
