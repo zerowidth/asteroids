@@ -270,14 +270,10 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     super e
     if e.keyCode is 32 # space
       v = Vec.scale @ship.orientation, 5
-      @addParticle new Particle
-        lifespan: 1
-        position: @ship.tip()
-        velocity: Vec.add @ship.velocity, v
-        size: 2
-        color: "#4FA"
-        fade: true
-        collides: true
+      @fireMissile @ship.tip(), Vec.add @ship.velocity, v
+    if e.keyCode is 88 # x
+      v = Vec.scale @ship.orientation, 3
+      @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
 
   collisions: (contacts) ->
     bumped = []
@@ -298,6 +294,13 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       continue if body.ship
       contact.particle.alive = false
       continue if contact.body.deleted
+
+      if contact.particle.spawnMore
+        num = Utils.randomInt(10, 25)
+        for i in [0..num]
+          direction = Rotation.fromAngle Utils.random() * Math.PI * 2
+          velocity = Vec.scale direction, 2.5 + Utils.random() * 2.5
+          @fireMissile contact.particle.position, velocity
 
       @explosionAt particle.position
       @removeBody contact.body
@@ -321,7 +324,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
           velocity = Vec.add shard.velocity, Vec.scale inward, Utils.random()
 
           @addParticle new Particle
-            lifespan: 2
+            lifespan: 1 + Utils.random()
             size: 2
             position: shard.position
             velocity: velocity
@@ -345,3 +348,15 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         damping: 0.05
         color: color
         fade: true
+
+  fireMissile: (position, velocity, size = 2, spawnMore = false) ->
+    missile = new Particle
+      lifespan: 1
+      position: position
+      velocity: velocity
+      size: size
+      color: "#4FA"
+      fade: true
+      collides: true
+    missile.spawnMore = spawnMore
+    @addParticle missile
