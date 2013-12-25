@@ -341,11 +341,10 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       color = "rgba(255,#{green},32,1)"
 
       @addParticle new Particle
-        lifespan: 0.5 + Utils.random() * 0.5
+        lifespan: Utils.random()
         size: 2
         position: position
         velocity: Vec.scale direction, speed
-        damping: 0.05
         color: color
         fade: true
 
