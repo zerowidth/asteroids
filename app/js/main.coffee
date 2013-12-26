@@ -5,13 +5,22 @@ class Simulation
 
   constructor: ->
     scale  = 50
-    @width  = Math.floor(window.innerWidth / scale) - 1
-    @height = Math.floor(window.innerHeight / scale) - 1
-    @width = Math.min(@width, @height)
-    @height = Math.min(@width, @height)
+
+    windowWidth  = window.innerWidth
+    windowHeight = window.innerHeight
+
+    @width  = Math.floor(windowWidth  / scale) - 1
+    @height = Math.floor(windowHeight / scale) - 1
+    verticalMargin   = (windowHeight - (@height * scale)) / 2
+    $("#container").css("margin-top", verticalMargin)
+      .width(@width * scale).height(@height * scale)
 
     @ctx = Sketch.create
       element: document.getElementById "display"
+      container: document.getElementById "container"
+      fullscreen: false
+      width: @width * scale
+      height: @height * scale
       # retina: true
 
     @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
