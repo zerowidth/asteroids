@@ -7,8 +7,6 @@ window.World = class World
 
     @keyboard = new KeyboardControls
 
-    # @stats = Utils.drawStats()
-
     @bodies = []
     @particles = []
     @slow = false
@@ -187,8 +185,6 @@ window.World = class World
         @display.drawCircle @camera2, 3, "#0AF"
 
     body.drawDebug(@display, @debugSettings) for body in @bodies
-
-    # @stats.update()
 
 window.WrappedWorld = class WrappedWorld extends World
 

@@ -41,7 +41,6 @@ class Simulation
         @world.click e
 
     @setNewSeed() unless @seed
-    # @initializeGUI()
 
     @reset()
 
@@ -57,34 +56,10 @@ class Simulation
 
     Utils.srand @seed
 
-    # for controller in @gui.__controllers
-    #   controller.updateDisplay()
-
     @generateBodies()
-    # @generateDebug()
 
   setNewSeed: ->
     @seed = Math.floor(Math.random() * 10000000)
-
-  # Internal: set up a GUI controller for the simulation
-  initializeGUI: ->
-    @gui = new dat.GUI()
-    seed = @gui.add(this, "seed")
-    @gui.add this, "randomize"
-    @gui.add this, "reset"
-
-    # @gui.add(@world, "paused").listen()
-    @gui.add @world, "speedFactor", 0.1, 10
-
-    debug = @gui.addFolder "debug"
-    debug.add @world, "pauseEveryStep"
-    debug.add @world, "pauseOnContact"
-    debug.add @world.debugSettings, "drawMinAxis"
-    debug.add @world.debugSettings, "drawAABB"
-    debug.add @world.debugSettings, "drawSAT"
-    debug.add @world.debugSettings, "drawContacts"
-    debug.add @world.debugSettings, "drawCamera"
-    debug.add @world.debugSettings, "drawQuadtree"
 
   generateBodies: ->
     @asteroids = []
@@ -133,15 +108,5 @@ class Simulation
     @world.addBody @ship
     @world.ship = @ship
     @world.track @ship
-
-  generateDebug: ->
-    @asteroids = []
-    @asteroids.push new Asteroid @width/2,
-      position: [@width / 2, @height / 2]
-      # velocity: [0, 1]
-      angularVelocity: Math.PI
-      density: 10
-      color: "#CCC"
-    @world.addBody a for a in @asteroids
 
 window.go = -> window.simulation = new Simulation
