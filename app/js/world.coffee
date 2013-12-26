@@ -276,7 +276,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       v = Vec.scale @ship.orientation, 5
       @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
     if e.keyCode is 90 # z
-      for angle in [-Math.PI/8, 0, Math.PI/8]
+      for angle in [-Math.PI/8, -Math.PI/16, 0, Math.PI/16, Math.PI/8]
         v = Rotation.add @ship.orientation, Rotation.fromAngle angle
         v = Vec.scale v, 5
         @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
@@ -303,9 +303,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       body     = contact.body
       particle = contact.particle
 
-      continue if body.ship
+      continue if body.ship or contact.body.deleted
       contact.particle.alive = false
-      continue if contact.body.deleted
 
       if contact.particle.spawnMore
         num = Utils.randomInt(10, 25)
