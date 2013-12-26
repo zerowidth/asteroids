@@ -64,12 +64,13 @@ class Simulation
   generateBodies: ->
     @asteroids = []
 
-    avgSize = sizeDelta = 3
+    avgSize = sizeDelta = 2.5
     deltaVelocity = 2
     deltaTheta = Math.PI
 
     searchRadius = avgSize - sizeDelta / 4
-    for pos in Utils.distributeRandomPoints [0, 0], [@width, @height], searchRadius
+    for pos, i in Utils.distributeRandomPoints [0, 0], [@width, @height], searchRadius, [@world.center()]
+      continue if i is 0
       size = avgSize + Utils.random(sizeDelta) - sizeDelta/2
 
       density = Utils.randomInt(0,4)
@@ -87,10 +88,7 @@ class Simulation
         color: "rgba(#{color},#{color},#{color},1)"
         lineColor: "rgba(#{lineColor},#{lineColor},#{lineColor},1)"
 
-    for a, i in @asteroids
-      a.index = i
-      @world.addBody a
-
+    @world.addBody a for a in @asteroids
     @ship = new Ship 0.3,
       color: "#468"
       lineColor: "#8CF"
