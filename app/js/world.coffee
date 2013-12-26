@@ -276,15 +276,6 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
 
   collisions: (contacts) ->
-    bumped = []
-    for contact in contacts
-      if contact.from.ship
-        bumped.push contact.to
-      if contact.to.ship
-        bumped.push contact.from
-
-    for asteroid in _.uniq bumped
-      asteroid.toggleColor asteroid.originalColor
 
   particleCollisions: (contacts) ->
     for contact in contacts

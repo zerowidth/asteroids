@@ -37,8 +37,6 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
     super opts
 
-    @originalColor = @color
-
     # Update position and offsets to match the calculated centroid, unless both
     # the position and vertices have been explicitly set.
     @recalculateCentroid()
@@ -86,12 +84,6 @@ window.Asteroid = class Asteroid extends PolygonalBody
       n = points.length
 
     points
-
-  toggleColor: (color) ->
-    if color is @color
-      @color = @originalColor
-    else
-      @color = color
 
   # shatter this asteroid into smaller asteroids, including a given location
   shatter: (location, reference = null) ->
