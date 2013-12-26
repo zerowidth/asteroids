@@ -18,7 +18,8 @@ window.PolygonalBody = class PolygonalBody
   density: null
 
   # what's it look like?
-  color: "#CCC"
+  color: "#666"
+  lineColor: "#CCC"
   renderWith: 'polygon'
 
   # simulation parameters
@@ -64,6 +65,7 @@ window.PolygonalBody = class PolygonalBody
     @density         = opts.density if opts.density
 
     @color           = opts.color if opts.color
+    @lineColor       = opts.lineColor if opts.lineColor
 
     @calculatePhysicalProperties()
 

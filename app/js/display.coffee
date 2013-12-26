@@ -77,7 +77,7 @@ window.WrappedDisplay = class WrappedDisplay extends Display
       [ ( x - @center[0] + offset[0] * @sizeX) * @scale + dx
         (-y + @center[1] + offset[1] * @sizeY) * @scale + dy ]
 
-  drawPolygons: (polygons, color, alpha = 0.5) ->
+  drawPolygons: (polygons, color, lineColor, alpha = 1) ->
     @ctx.beginPath()
 
     for vertices in polygons
@@ -95,13 +95,11 @@ window.WrappedDisplay = class WrappedDisplay extends Display
           @ctx.lineTo point... for point in transformed[1..]
           @ctx.lineTo transformed[0]...
 
-    @ctx.globalAlpha = 1
+    @ctx.globalAlpha = alpha
     @ctx.fillStyle = color
-    @ctx.strokeStyle = color
+    @ctx.strokeStyle = lineColor
     @ctx.lineWidth = 1
     @ctx.stroke()
-
-    @ctx.globalAlpha = alpha
     @ctx.fill()
 
   drawCircles: (centers, radius, color, alpha = 1) ->

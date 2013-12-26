@@ -113,6 +113,7 @@ window.Asteroid = class Asteroid extends PolygonalBody
         points: polygon
         density: @density
         color: @color
+        lineColor: @lineColor
       shard.velocity = Vec.add @velocity, reference.angularVelocityAt shard.position
       shards.push shard
 
@@ -188,6 +189,6 @@ window.Ship = class Ship extends PolygonalBody
       offsets = [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
       flame = @transform offsets, @size
 
-      display.drawPolygons [flame], "#FB0", 0.25 + @flameLevel * 0.5
+      display.drawPolygons [flame], "#FB0", "#FB0", 0.25 + @flameLevel * 0.5
 
-    display.drawPolygons [@transform(@drawOffsets)], @color
+    display.drawPolygons [@transform(@drawOffsets)], @color, @lineColor

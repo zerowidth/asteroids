@@ -167,19 +167,20 @@ window.World = class World
   draw: ->
 
     @display.drawClipped =>
-      for particle in @particles
-        particle.draw @display
-
       bodiesByType = _.groupBy @bodies, 'renderWith'
       byColor = _.groupBy(bodiesByType.polygon or [], 'color')
 
       _.each byColor, (bodies, color) =>
         polygons = (body.vertices() for body in bodies)
         centers = (body.position for body in bodies)
-        @display.drawPolygons polygons, color
+        lineColor = bodies[0].lineColor
+        @display.drawPolygons polygons, color, lineColor
 
       for body in bodiesByType.custom or []
         body.draw @display
+
+      for particle in @particles
+        particle.draw @display
 
       if @tracking and @debugSettings.drawCamera
         @display.drawCircle @camera1, 3, "#0FF"
@@ -205,7 +206,6 @@ window.WrappedWorld = class WrappedWorld extends World
 
   draw: =>
     super()
-    @display.drawBounds()
 
     if @debugSettings.drawQuadtree
       midpoints = []

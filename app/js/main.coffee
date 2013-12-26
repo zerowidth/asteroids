@@ -98,7 +98,8 @@ class Simulation
       size = avgSize + Utils.random(sizeDelta) - sizeDelta/2
 
       density = Utils.randomInt(0,4)
-      color = Math.floor(192 - density * 32)
+      lineColor = Math.floor(192 - density * 32)
+      color = Math.floor(96 - density * 16)
 
       @asteroids.push new Asteroid size,
         position: pos
@@ -109,13 +110,15 @@ class Simulation
         angularVelocity: Utils.random(deltaTheta) - deltaTheta / 2
         density: 10 + 5 * density
         color: "rgba(#{color},#{color},#{color},1)"
+        lineColor: "rgba(#{lineColor},#{lineColor},#{lineColor},1)"
 
     for a, i in @asteroids
       a.index = i
       @world.addBody a
 
     @ship = new Ship 0.3,
-      color: "#8CF"
+      color: "#468"
+      lineColor: "#8CF"
       position: @world.center()
       angle: Math.PI/2
       density: 5
