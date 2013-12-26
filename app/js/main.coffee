@@ -11,7 +11,7 @@ class Simulation
 
     @width  = Math.floor(windowWidth  / scale) - 1
     @height = Math.floor(windowHeight / scale) - 1
-    verticalMargin   = (windowHeight - (@height * scale)) / 2
+    verticalMargin = (windowHeight - (@height * scale)) / 2
     $("#container").css("margin-top", verticalMargin)
       .width(@width * scale).height(@height * scale)
 
@@ -25,8 +25,7 @@ class Simulation
 
     @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
 
-    @world = new AsteroidWorld @display, @width, @height
-
+    @world = new AsteroidWorld @display, @width, @height, scale
 
     _.extend @ctx,
       update: =>
@@ -39,15 +38,7 @@ class Simulation
       keyup: (e) =>
         @world.keyup e
       click: (e) =>
-        offsetX = (window.innerWidth / scale) - @width
-        offsetY = (window.innerHeight / scale) - @height
-        x = e.x / scale - offsetX/2
-        y = @height - (e.y / scale - offsetY/2)
-
-        console.log "click", [x, y]
-        for body in @world.quadtree.atPoint [x, y]
-          if Geometry.pointInsidePolygon [x, y], body.vertices()
-            console.log "got body", body
+        @world.click e
 
     @setNewSeed() unless @seed
     # @initializeGUI()
@@ -154,5 +145,3 @@ class Simulation
     @world.addBody a for a in @asteroids
 
 window.go = -> window.simulation = new Simulation
-
-window.body = (i) -> simulation.world.bodies[i] # for debugging

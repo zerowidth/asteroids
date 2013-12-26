@@ -192,7 +192,7 @@ window.World = class World
 
 window.WrappedWorld = class WrappedWorld extends World
 
-  constructor: (@display, @sizeX, @sizeY, opts={}) ->
+  constructor: (@display, @sizeX, @sizeY, @scale, opts={}) ->
     super @display, opts
 
   addBody: (body) -> super @constrain body
@@ -279,6 +279,12 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         v = Rotation.add @ship.orientation, Rotation.fromAngle angle
         v = Vec.scale v, 5
         @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
+
+  click: (e) =>
+    offsetX = (window.innerWidth / @scale) - @width
+    offsetY = (window.innerHeight / @scale) - @height
+    x = e.x / @scale - offsetX/2
+    y = @height - (e.y / @scale - offsetY/2)
 
   collisions: (contacts) ->
 
