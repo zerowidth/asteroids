@@ -270,10 +270,15 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     super e
     if e.keyCode is 32 or e.keyCode is 40 # space or down
       v = Vec.scale @ship.orientation, 5
-      @fireMissile @ship.tip(), Vec.add @ship.velocity, v
+      @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
     if e.keyCode is 88 # x
-      v = Vec.scale @ship.orientation, 3
+      v = Vec.scale @ship.orientation, 5
       @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
+    if e.keyCode is 90 # z
+      for angle in [-Math.PI/8, 0, Math.PI/8]
+        v = Rotation.add @ship.orientation, Rotation.fromAngle angle
+        v = Vec.scale v, 5
+        @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
 
   collisions: (contacts) ->
 
@@ -291,7 +296,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         for i in [0..num]
           direction = Rotation.fromAngle Utils.random() * Math.PI * 2
           velocity = Vec.scale direction, 2.5 + Utils.random() * 2.5
-          @fireMissile contact.particle.position, velocity
+          @fireMissile contact.particle.position, velocity, 3
 
       @explosionAt particle.position
       @removeBody contact.body
@@ -339,7 +344,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         color: color
         fade: true
 
-  fireMissile: (position, velocity, size = 2, spawnMore = false) ->
+  fireMissile: (position, velocity, size, spawnMore = false) ->
     missile = new Particle
       lifespan: 1
       position: position
