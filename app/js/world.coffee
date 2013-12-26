@@ -113,6 +113,7 @@ window.World = class World
         particle.position = Vec.add particle.position, delta
       @camera1 = Vec.add @camera1, delta
       @camera2 = Vec.add @camera2, delta
+      @cameraDelta = delta
 
     @cleanup()
 
@@ -262,6 +263,10 @@ window.WrappedWorld = class WrappedWorld extends World
 
 window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
+  constructor: (args...) ->
+    super args...
+    @createStarfield()
+
   keydown: (e) ->
     super e
     if e.keyCode is 32 or e.keyCode is 40 # space or down
@@ -281,6 +286,15 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     offsetY = (window.innerHeight / @scale) - @height
     x = e.x / @scale - offsetX/2
     y = @height - (e.y / @scale - offsetY/2)
+
+  update: (dt) ->
+    super dt
+    @updateStarfield @cameraDelta
+
+  draw: =>
+    for stars in @starfield
+      @display.drawCircle point, size, color for [point, size, color] in stars
+    super()
 
   collisions: (contacts) ->
 
@@ -357,3 +371,22 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       collides: true
     missile.spawnMore = spawnMore
     @addParticle missile
+
+  createStarfield: ->
+    colors = ["#FDD", "#DFD", "#DDF"]
+    @starfield = for i in [0..3]
+      count = @sizeX * @scale * @sizeY * @scale / 10000
+      for i in [0..count]
+        x = Utils.random() * @sizeX
+        y = Utils.random() * @sizeY
+        size = if Utils.random() < 0.1 then 2 else 1
+        n = Utils.randomInt(0,10)
+        color = if n > 2 then "#FFF" else colors[n]
+        [[x, y], size, color]
+
+  updateStarfield: (delta) ->
+    n = (@starfield.length + 1) * 0.1
+    for stars, i in @starfield
+      delta = Vec.scale delta, n - 0.1 * i
+      for star in stars
+        star[0] = @constrainPosition Vec.add star[0], delta
