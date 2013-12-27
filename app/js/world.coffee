@@ -327,8 +327,11 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         continue if contact.to.ship and contact.to.dead
 
         if contact.originalSepV > -1.5
-          color = if contact.from.ship then contact.to.color else contact.from.color
-          @explosionAt contact.position, color, 5
+          color = if contact.from.ship
+            contact.to.lineColor
+          else
+            contact.from.lineColor
+          @explosionAt contact.position, color: color, count: 5, size: 1
           @damageFlash -contact.originalSepV / 1.5
         else
           @explodeShip()
@@ -389,7 +392,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @ship.velocity = [0, 0]
     @ship.angularVelocity = 0
 
-    @explosionAt @ship.position, "#8CF", 100
+    @explosionAt @ship.position, color: "#8CF", count: 100
 
     @addBody @ship
     @track @ship
@@ -404,7 +407,11 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         @bodyExplosion shard.position, shard.velocity, shard.vertices(), shard.color
     added
 
-  explosionAt: (position, color = null, count = 50) ->
+  explosionAt: (position, opts = {}) ->
+    color = opts.color # null as default is fine
+    count = opts.count or 50
+    size = opts.size or 2
+
     num = Utils.randomInt(count / 2, count)
     for i in [0..num]
       direction = Rotation.fromAngle Utils.random() * Math.PI * 2
@@ -414,7 +421,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
       @addParticle new Particle
         lifespan: Utils.random()
-        size: 2
+        size: size
         position: position
         velocity: Vec.scale direction, speed
         color: c
