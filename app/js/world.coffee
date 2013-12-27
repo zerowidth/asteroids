@@ -75,6 +75,7 @@ window.World = class World
     @postIntegrate()
 
     @contacts = @narrowPhaseCollisions @broadPhaseCollisions()
+    @particleContacts = @generateParticleContacts()
 
     if @contacts.length > 0
       for n in [1..@contacts.length*2] # loop contacts * 2 times
@@ -96,8 +97,6 @@ window.World = class World
 
         break if worstSepV > 0
         worst.resolveVelocity dt
-
-    @particleContacts = @generateParticleContacts()
 
     # post-process collisions:
     @particleCollisions @particleContacts
