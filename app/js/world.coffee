@@ -323,10 +323,10 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         continue if contact.from.ship and contact.from.dead
         continue if contact.to.ship and contact.to.dead
 
-        if contact.originalSepV > -2
+        if contact.originalSepV > -1.5
           color = if contact.from.ship then contact.to.color else contact.from.color
           @explosionAt contact.position, color, 5
-          @damageFlash -contact.originalSepV / 2
+          @damageFlash -contact.originalSepV / 1.5
         else
           @explodeShip()
           if contact.from.ship

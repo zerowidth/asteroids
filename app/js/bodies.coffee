@@ -105,10 +105,23 @@ window.Ship = class Ship extends PolygonalBody
   # Maneuvering capabilities as a multiplier of mass.
   # Used to calculate accelerations from keyboard input.
   thrust: 1
-  turn: 4
+  turn: 8
 
   # How much of the flame is visible (drawing)
   flameLevel: 0
+  flameOffsets: ->
+    # tip of flame is from -1.5 to 0.25, map it onto that scale
+    x = - @flameLevel * 1.75 - 0.25
+    [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
+
+  # How much of the thruster is visible
+  thrusterLevel: 0
+  thrusterOffsets: ->
+    # tip of thrust is from +/-0.75 to +/- 0.2, give or take
+    side = if @thrusterLevel > 0 then 1 else -1
+    # y coords come from line equation of side of ship, y = -0.2857x + 0.357
+    y = 0.185 * side + 0.75 * @thrusterLevel
+    [ [0.8, 0.128 * side], [0.6, y], [0.4, 0.242 * side] ]
 
   # Public: Create a new Ship.
   #
@@ -154,21 +167,26 @@ window.Ship = class Ship extends PolygonalBody
 
     if keyboard.left
       @angularAccel = @turn
+      @thrusterLevel = -1
     else if keyboard.right
       @angularAccel = -@turn
+      @thrusterLevel = 1
     else
       @angularAccel = 0
+      @thrusterLevel = @thrusterLevel - @thrusterLevel * 0.25
+      @thrusterLevel = 0 if Math.abs(@thrusterLevel) < 0.05
 
     super dt, keyboard
 
   draw: (display) ->
     if @flameLevel > 0
-      # tip of flame is from -1.5 to 0.25, map it onto that scale
-      x = - @flameLevel * 1.75 - 0.25
-
-      offsets = [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
-      flame = @transform offsets, @size
-
+      flame = @transform @flameOffsets(), @size
       display.drawPolygons [flame], "#FB0", "#FB0", 0.25 + @flameLevel * 0.5
+
+    if @thrusterLevel isnt 0
+      thruster = @transform @thrusterOffsets(), @size
+      alpha = 0.25 + Math.abs(@thrusterLevel) * 0.5
+      alpha = 1
+      display.drawPolygons [thruster], "#CCF", "#CCF", alpha
 
     display.drawPolygons [@transform(@drawOffsets)], @color, @lineColor
