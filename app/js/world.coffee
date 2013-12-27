@@ -11,6 +11,8 @@ window.World = class World
     @particles = []
     @slow = false
 
+    @camera1 = @camera2 = @cameraDelta = [0, 0]
+
   keydown: (e) =>
     @keyboard.keydown e
     @slow = @keyboard.shift
@@ -276,6 +278,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
   constructor: (args...) ->
     super args...
     @createStarfield()
+    @reset()
 
   keydown: (e) ->
     return if @paused
@@ -489,3 +492,49 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       green = Math.floor (1 - @damage) * 255
       color = "rgba(255,#{green},32,#{alpha})"
       @display.fillBounds color, alpha
+
+  # Reset this world, generating new asteroids, etc.
+  reset: ->
+    @removeAllBodies()
+    @removeAllParticles()
+    @generateAsteroids()
+    @createShip()
+
+  generateAsteroids: ->
+    avgSize = sizeDelta = 3
+    deltaVelocity = 3
+    deltaTheta = Math.PI
+
+    searchRadius = avgSize - sizeDelta / 2.5
+    for pos, i in Utils.distributeRandomPoints [0, 0], [@sizeX, @sizeY], searchRadius, [@center()]
+      continue if i is 0
+      size = avgSize + Utils.random(sizeDelta) - sizeDelta/2
+
+      density = Utils.randomInt(0,4)
+      lineColor = Math.floor(192 - density * 32)
+      color = Math.floor(96 - density * 16)
+
+      @addBody new Asteroid size,
+        position: pos
+        velocity: [
+          Utils.random(deltaVelocity) - deltaVelocity / 2,
+          Utils.random(deltaVelocity) - deltaVelocity / 2
+        ]
+        angularVelocity: Utils.random(deltaTheta) - deltaTheta / 2
+        density: 10 + 5 * density
+        color: "rgba(#{color},#{color},#{color},1)"
+        lineColor: "rgba(#{lineColor},#{lineColor},#{lineColor},1)"
+
+  createShip: ->
+    @ship = new Ship 0.3,
+      position: @center()
+      angle: Math.PI/2
+      density: 5
+      thrust: 6
+      turn: 5
+
+    # make the ship more resistant to spinning (helps with bounces)
+    @ship.inverseMoment = @ship.inverseMoment / 4
+
+    @addBody @ship
+    @track @ship
