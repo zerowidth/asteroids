@@ -21,6 +21,9 @@ window.World = class World
     if e.keyCode is 80 # p
       @paused = !@paused
 
+  mousedown: (e) =>
+  click: (e) =>
+
   debugSettings:
     drawMinAxis: false
     drawAABB: false
@@ -281,11 +284,12 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         v = Vec.scale v, 5
         @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
 
-  click: (e) =>
-    offsetX = (window.innerWidth / @scale) - @width
-    offsetY = (window.innerHeight / @scale) - @height
-    x = e.x / @scale - offsetX/2
-    y = @height - (e.y / @scale - offsetY/2)
+  mousedown: (e) =>
+    point = [e.offsetX / @scale, @sizeY - e.offsetY / @scale]
+    for body in @quadtree.atPoint point
+      if Geometry.pointInsidePolygon point, body.vertices()
+        @fireMissile point, [0, 0], 1, true
+        return
 
   update: (dt) ->
     super dt
@@ -313,15 +317,19 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
           velocity = Vec.scale direction, 2.5 + Utils.random() * 2.5
           @fireMissile contact.particle.position, velocity, 3
 
-      @explosionAt particle.position
-      @removeBody contact.body
+
+      @explodeAsteroid contact.body, particle.position
       contact.body.deleted = true
-      added = @addShards particle.position, body.shatter particle.position
-      for shard in added
-        if Geometry.pointInsidePolygon particle.position, shard.vertices()
-          @removeBody shard
-          shards = shard.shatter particle.position, body
-          added = added.concat @addShards particle.position, shards
+
+  explodeAsteroid: (body, point) ->
+    @removeBody body
+    @explosionAt point
+    added = @addShards point, body.shatter point
+    for shard in added
+      if Geometry.pointInsidePolygon point, shard.vertices()
+        @removeBody shard
+        shards = shard.shatter point, body
+        added = added.concat @addShards point, shards
 
   addShards: (position, shards) ->
     added = []

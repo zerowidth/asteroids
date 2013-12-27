@@ -37,6 +37,8 @@ class Simulation
 
       keyup: (e) =>
         @world.keyup e
+      mousedown: (e) =>
+        @world.mousedown e
       click: (e) =>
         @world.click e
 
