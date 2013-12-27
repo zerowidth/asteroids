@@ -11,9 +11,8 @@ class Simulation
 
     @width  = Math.floor(windowWidth  / scale) - 1
     @height = Math.floor(windowHeight / scale) - 1
-    verticalMargin = (windowHeight - (@height * scale)) / 2
-    $("#container").css("margin-top", verticalMargin)
-      .width(@width * scale).height(@height * scale)
+    $("#container").width(@width * scale).height(@height * scale)
+    $("#header").width(@width * scale)
 
     @ctx = Sketch.create
       element: document.getElementById "display"
