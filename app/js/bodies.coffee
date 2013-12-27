@@ -123,6 +123,9 @@ window.Ship = class Ship extends PolygonalBody
     y = 0.185 * side + 0.8 * @thrusterLevel
     [ [0.8, 0.128 * side], [0.6, y], [0.4, 0.242 * side] ]
 
+  # Draw targeting line?
+  targeting: true
+
   # Public: Create a new Ship.
   #
   # size - how big the ship is (give or take)
@@ -176,6 +179,8 @@ window.Ship = class Ship extends PolygonalBody
       @thrusterLevel = @thrusterLevel - @thrusterLevel * 0.25
       @thrusterLevel = 0 if Math.abs(@thrusterLevel) < 0.05
 
+    @targeting = keyboard.shift
+
     super dt, keyboard
 
   draw: (display) ->
@@ -188,5 +193,14 @@ window.Ship = class Ship extends PolygonalBody
       alpha = 0.25 + Math.abs(@thrusterLevel) * 0.5
       alpha = 1
       display.drawPolygons [thruster], "#CCF", "#CCF", alpha
+
+    if @targeting
+      to = Vec.add @position, Vec.scale @orientation, 2.5
+      display.drawLine @position, to, 1, "#F33", 1
+      for segment in [0..9]
+        from = Vec.add @position, Vec.scale @orientation, 2.5 + (segment / 10) * 2.5
+        to   = Vec.add @position, Vec.scale @orientation, 2.5 + ((segment + 1) / 10) * 2.5
+        alpha = 1 - segment / 10
+        display.drawLine from, to, 1, "#F33", alpha
 
     display.drawPolygons [@transform(@drawOffsets)], @color, @lineColor

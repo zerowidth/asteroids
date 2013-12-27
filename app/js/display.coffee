@@ -44,22 +44,17 @@ window.Display = class Display
     @ctx.fill()
 
   drawLine: (from, to, width, color, alpha=1) ->
-    @ctx.save()
-
     from = @transform([ from ])[0]
     to = @transform([ to ])[0]
 
     @ctx.strokeStyle = color
     @ctx.lineWidth = width
-
-    @ctx.globalAlpha = alpha if alpha < 1
+    @ctx.globalAlpha = alpha
 
     @ctx.beginPath()
     @ctx.moveTo from...
     @ctx.lineTo to...
     @ctx.stroke()
-
-    @ctx.restore()
 
 window.WrappedDisplay = class WrappedDisplay extends Display
   # ctx    - the canvas context

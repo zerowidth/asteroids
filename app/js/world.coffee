@@ -355,7 +355,6 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
           velocity = Vec.scale direction, 2.5 + Utils.random() * 2.5
           @fireMissile contact.particle.position, velocity, 3
 
-
       @explodeAsteroid contact.body, particle.position
       contact.body.deleted = true
 
