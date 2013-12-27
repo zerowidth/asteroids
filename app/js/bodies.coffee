@@ -117,10 +117,10 @@ window.Ship = class Ship extends PolygonalBody
   # How much of the thruster is visible
   thrusterLevel: 0
   thrusterOffsets: ->
-    # tip of thrust is from +/-0.75 to +/- 0.2, give or take
+    # tip of thrust is from +/-0.8 to +/- 0.2, give or take
     side = if @thrusterLevel > 0 then 1 else -1
     # y coords come from line equation of side of ship, y = -0.2857x + 0.357
-    y = 0.185 * side + 0.75 * @thrusterLevel
+    y = 0.185 * side + 0.8 * @thrusterLevel
     [ [0.8, 0.128 * side], [0.6, y], [0.4, 0.242 * side] ]
 
   # Public: Create a new Ship.

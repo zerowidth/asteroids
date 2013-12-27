@@ -66,11 +66,11 @@ class Simulation
   generateBodies: ->
     @asteroids = []
 
-    avgSize = sizeDelta = 2.5
-    deltaVelocity = 2
+    avgSize = sizeDelta = 3
+    deltaVelocity = 3
     deltaTheta = Math.PI
 
-    searchRadius = avgSize - sizeDelta / 4
+    searchRadius = avgSize - sizeDelta / 2.5
     for pos, i in Utils.distributeRandomPoints [0, 0], [@width, @height], searchRadius, [@world.center()]
       continue if i is 0
       size = avgSize + Utils.random(sizeDelta) - sizeDelta/2

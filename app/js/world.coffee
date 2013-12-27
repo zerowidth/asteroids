@@ -389,6 +389,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @ship.velocity = [0, 0]
     @ship.angularVelocity = 0
 
+    @explosionAt @ship.position, "#8CF", 100
+
     @addBody @ship
     @track @ship
 
