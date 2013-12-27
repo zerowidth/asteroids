@@ -317,6 +317,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     return if @paused
     @updateStarfield @cameraDelta if Vec.magnitudeSquared(@cameraDelta) > 0
     @updateDamage()
+
+    return if @ship.dead
     if @ship.invincible and Utils.random() < 0.1
       @explosionAt @ship.position, size: 1, count: 1, color: @ship.lineColor
 
