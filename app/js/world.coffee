@@ -40,11 +40,15 @@ window.World = class World
   removeParticle: (particle) -> _.without(@particles, particle)
   removeAllParticles: -> @particles = []
 
-  track: (@tracking) ->
-    if @tracking
+  track: (target) ->
+    if target
+      @tracking = target
       @camera1 = @camera2 = @tracking.position
     else
-      @camera1 = @camera2 = @center()
+      if @tracking
+        @tracking = {position: @tracking.position}
+      else
+        @camera1 = @camera2 = @center()
 
   center: -> [@sizeX/2, @sizeY/2]
 
@@ -111,9 +115,12 @@ window.World = class World
 
       delta = Vec.sub @center(), @camera2
       for body in @bodies
+        continue if body is @tracking
         body.position = Vec.add body.position, delta
       for particle in @particles
+        continue if body is @tracking
         particle.position = Vec.add particle.position, delta
+      @tracking.position = Vec.add @tracking.position, delta
       @camera1 = Vec.add @camera1, delta
       @camera2 = Vec.add @camera2, delta
       @cameraDelta = delta
@@ -293,7 +300,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
   update: (dt) ->
     super dt
-    @updateStarfield @cameraDelta
+    @updateStarfield @cameraDelta if Vec.magnitudeSquared(@cameraDelta) > 0
 
   draw: =>
     for stars in @starfield
