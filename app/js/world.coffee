@@ -309,11 +309,13 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
   update: (dt) ->
     super dt
     @updateStarfield @cameraDelta if Vec.magnitudeSquared(@cameraDelta) > 0
+    @updateDamage()
 
   draw: =>
     for stars in @starfield
       @display.drawCircle point, size, color for [point, size, color] in stars
     super()
+    @drawDamage()
 
   collisions: (contacts) ->
     for contact in contacts
@@ -321,12 +323,16 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         continue if contact.from.ship and contact.from.dead
         continue if contact.to.ship and contact.to.dead
 
-        @explodeShip()
-
-        if contact.from.ship
-          @explodeAsteroid contact.to, contact.position
+        if contact.originalSepV > -2
+          color = if contact.from.ship then contact.to.color else contact.from.color
+          @explosionAt contact.position, color, 5
+          @damageFlash -contact.originalSepV / 2
         else
-          @explodeAsteroid contact.from, contact.position
+          @explodeShip()
+          if contact.from.ship
+            @explodeAsteroid contact.to, contact.position
+          else
+            @explodeAsteroid contact.from, contact.position
 
   particleCollisions: (contacts) ->
     for contact in contacts
@@ -361,6 +367,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     return if @ship.dead
 
     @explosionAt @ship.position
+    @damageFlash 1
     for vertex in @ship.vertices()
       @explosionAt vertex
     for shard in @ship.shards @ship.position
@@ -392,20 +399,20 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         @bodyExplosion shard.position, shard.velocity, shard.vertices(), shard.color
     added
 
-  explosionAt: (position) ->
-    num = Utils.randomInt(25, 50)
+  explosionAt: (position, color = null, count = 50) ->
+    num = Utils.randomInt(count / 2, count)
     for i in [0..num]
       direction = Rotation.fromAngle Utils.random() * Math.PI * 2
       speed = Utils.random() * 2
       green = Utils.randomInt(0, 255)
-      color = "rgba(255,#{green},32,1)"
+      c = color or "rgba(255,#{green},32,1)"
 
       @addParticle new Particle
         lifespan: Utils.random()
         size: 2
         position: position
         velocity: Vec.scale direction, speed
-        color: color
+        color: c
         fade: true
 
   bodyExplosion: (position, velocity, vertices, color) ->
@@ -451,3 +458,16 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       delta = Vec.scale delta, n - 0.1 * i
       for star in stars
         star[0] = @constrainPosition Vec.add star[0], delta
+
+  damageFlash: (@damage) ->
+
+  updateDamage: ->
+    @damage = @damage - 0.01
+    @damage = 0 if @damage < 0.01
+
+  drawDamage: ->
+    if @damage > 0
+      alpha = Math.floor(@damage / 1.5 * 100) / 100
+      green = Math.floor (1 - @damage) * 255
+      color = "rgba(255,#{green},32,#{alpha})"
+      @display.fillBounds color, alpha

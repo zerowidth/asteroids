@@ -3,6 +3,8 @@ window.Contact = class Contact
   restitution: 0.2 # TODO calculate this from objects involved
 
   constructor: (@from, @to, @position, @normal, @depth, @offset) ->
+    # store original SepV for use by the game.
+    @originalSepV = @separatingVelocity()
 
   # Calculated fresh each time, as the position and velocity may have changed
   # during a previous contact resolution iteration

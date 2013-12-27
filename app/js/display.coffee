@@ -144,3 +144,16 @@ window.WrappedDisplay = class WrappedDisplay extends Display
     @ctx.lineTo points[i]... for i in [1..4]
     @ctx.stroke()
     @ctx.restore()
+
+  fillBounds: (color, alpha) ->
+    @ctx.save()
+
+    points = @bounds()
+
+    @ctx.globalAlpha = alpha
+    @ctx.fillStyle = color
+    @ctx.beginPath()
+    @ctx.moveTo points[0]...
+    @ctx.lineTo points[i]... for i in [1..4]
+    @ctx.fill()
+    @ctx.restore()
