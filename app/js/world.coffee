@@ -345,17 +345,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         @addBody shard
         added.push shard
       else
-        for point in shard.vertices()
-          inward = Vec.normalize Vec.sub shard.position, point
-          velocity = Vec.add shard.velocity, Vec.scale inward, Utils.random()
-
-          @addParticle new Particle
-            lifespan: 1 + Utils.random()
-            size: 2
-            position: shard.position
-            velocity: velocity
-            color: shard.color
-            fade: true
+        @bodyExplosion shard.position, shard.velocity, shard.vertices(), shard.color
     added
 
   explosionAt: (position) ->
@@ -371,6 +361,19 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         size: 2
         position: position
         velocity: Vec.scale direction, speed
+        color: color
+        fade: true
+
+  bodyExplosion: (position, velocity, vertices, color) ->
+    for point in vertices
+      inward = Vec.normalize Vec.sub position, point
+      v = Vec.add velocity, Vec.scale inward, Utils.random()
+
+      @addParticle new Particle
+        lifespan: 1 + Utils.random()
+        size: 2
+        position: position
+        velocity: v
         color: color
         fade: true
 
