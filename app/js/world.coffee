@@ -278,6 +278,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @createStarfield()
 
   keydown: (e) ->
+    return if @paused
     super e
 
     return if @ship.dead
@@ -297,6 +298,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       @explodeShip()
 
   mousedown: (e) =>
+    return if @paused
     point = [e.offsetX / @scale, @sizeY - e.offsetY / @scale]
     for body in @quadtree.atPoint point
       if Geometry.pointInsidePolygon point, body.vertices()
@@ -308,6 +310,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
   update: (dt) ->
     super dt
+    return if @paused
     @updateStarfield @cameraDelta if Vec.magnitudeSquared(@cameraDelta) > 0
     @updateDamage()
 
