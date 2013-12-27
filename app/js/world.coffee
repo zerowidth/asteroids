@@ -279,6 +279,9 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
   keydown: (e) ->
     super e
+
+    return if @ship.dead
+
     if e.keyCode is 32 or e.keyCode is 40 # space or down
       v = Vec.scale @ship.orientation, 5
       @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
@@ -290,13 +293,18 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         v = Rotation.add @ship.orientation, Rotation.fromAngle angle
         v = Vec.scale v, 5
         @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
+    if e.keyCode is 81 # q
+      @explodeShip()
 
   mousedown: (e) =>
     point = [e.offsetX / @scale, @sizeY - e.offsetY / @scale]
     for body in @quadtree.atPoint point
       if Geometry.pointInsidePolygon point, body.vertices()
-        @fireMissile point, [0, 0], 1, true
-        return
+        if body.ship
+          @explodeShip()
+        else
+          @fireMissile point, [0, 0], 1, true
+          return
 
   update: (dt) ->
     super dt
@@ -308,6 +316,17 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     super()
 
   collisions: (contacts) ->
+    for contact in contacts
+      if contact.from.ship or contact.to.ship
+        continue if contact.from.ship and contact.from.dead
+        continue if contact.to.ship and contact.to.dead
+
+        @explodeShip()
+
+        if contact.from.ship
+          @explodeAsteroid contact.to, contact.position
+        else
+          @explodeAsteroid contact.from, contact.position
 
   particleCollisions: (contacts) ->
     for contact in contacts
@@ -337,6 +356,31 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         @removeBody shard
         shards = shard.shatter point, body
         added = added.concat @addShards point, shards
+
+  explodeShip: ->
+    return if @ship.dead
+
+    @explosionAt @ship.position
+    for vertex in @ship.vertices()
+      @explosionAt vertex
+    for shard in @ship.shards @ship.position
+      @bodyExplosion @ship.position, [0, 0], shard, @ship.color
+
+    @ship.dead = true
+    @track null
+    @removeBody @ship
+
+    setTimeout @restoreShip, 3000
+
+  restoreShip: =>
+    @ship.dead = false
+    @ship.orientation = Rotation.fromAngle Math.PI/2
+    @ship.position = @center()
+    @ship.velocity = [0, 0]
+    @ship.angularVelocity = 0
+
+    @addBody @ship
+    @track @ship
 
   addShards: (position, shards) ->
     added = []
