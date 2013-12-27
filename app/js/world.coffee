@@ -7,8 +7,6 @@ window.World = class World
 
     @keyboard = new KeyboardControls
 
-    # @stats = Utils.drawStats()
-
     @bodies = []
     @particles = []
     @slow = false
@@ -22,6 +20,9 @@ window.World = class World
     @slow = @keyboard.shift
     if e.keyCode is 80 # p
       @paused = !@paused
+
+  mousedown: (e) =>
+  click: (e) =>
 
   debugSettings:
     drawMinAxis: false
@@ -39,11 +40,15 @@ window.World = class World
   removeParticle: (particle) -> _.without(@particles, particle)
   removeAllParticles: -> @particles = []
 
-  track: (@tracking) ->
-    if @tracking
+  track: (target) ->
+    if target
+      @tracking = target
       @camera1 = @camera2 = @tracking.position
     else
-      @camera1 = @camera2 = @center()
+      if @tracking
+        @tracking = {position: @tracking.position}
+      else
+        @camera1 = @camera2 = @center()
 
   center: -> [@sizeX/2, @sizeY/2]
 
@@ -110,11 +115,15 @@ window.World = class World
 
       delta = Vec.sub @center(), @camera2
       for body in @bodies
+        continue if body is @tracking
         body.position = Vec.add body.position, delta
       for particle in @particles
+        continue if body is @tracking
         particle.position = Vec.add particle.position, delta
+      @tracking.position = Vec.add @tracking.position, delta
       @camera1 = Vec.add @camera1, delta
       @camera2 = Vec.add @camera2, delta
+      @cameraDelta = delta
 
     @cleanup()
 
@@ -167,19 +176,20 @@ window.World = class World
   draw: ->
 
     @display.drawClipped =>
-      for particle in @particles
-        particle.draw @display
-
       bodiesByType = _.groupBy @bodies, 'renderWith'
       byColor = _.groupBy(bodiesByType.polygon or [], 'color')
 
       _.each byColor, (bodies, color) =>
         polygons = (body.vertices() for body in bodies)
         centers = (body.position for body in bodies)
-        @display.drawPolygons polygons, color
+        lineColor = bodies[0].lineColor
+        @display.drawPolygons polygons, color, lineColor
 
       for body in bodiesByType.custom or []
         body.draw @display
+
+      for particle in @particles
+        particle.draw @display
 
       if @tracking and @debugSettings.drawCamera
         @display.drawCircle @camera1, 3, "#0FF"
@@ -187,11 +197,9 @@ window.World = class World
 
     body.drawDebug(@display, @debugSettings) for body in @bodies
 
-    # @stats.update()
-
 window.WrappedWorld = class WrappedWorld extends World
 
-  constructor: (@display, @sizeX, @sizeY, opts={}) ->
+  constructor: (@display, @sizeX, @sizeY, @scale, opts={}) ->
     super @display, opts
 
   addBody: (body) -> super @constrain body
@@ -205,7 +213,6 @@ window.WrappedWorld = class WrappedWorld extends World
 
   draw: =>
     super()
-    @display.drawBounds()
 
     if @debugSettings.drawQuadtree
       midpoints = []
@@ -266,51 +273,135 @@ window.WrappedWorld = class WrappedWorld extends World
 
 window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
+  constructor: (args...) ->
+    super args...
+    @createStarfield()
+
   keydown: (e) ->
+    return if @paused
     super e
+
+    return if @ship.dead
+
     if e.keyCode is 32 or e.keyCode is 40 # space or down
       v = Vec.scale @ship.orientation, 5
-      @fireMissile @ship.tip(), Vec.add @ship.velocity, v
+      @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
     if e.keyCode is 88 # x
-      v = Vec.scale @ship.orientation, 3
+      v = Vec.scale @ship.orientation, 5
       @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
+    if e.keyCode is 90 # z
+      for angle in [-Math.PI/8, -Math.PI/16, 0, Math.PI/16, Math.PI/8]
+        v = Rotation.add @ship.orientation, Rotation.fromAngle angle
+        v = Vec.scale v, 5
+        @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
+    if e.keyCode is 81 # q
+      @explodeShip()
+    if e.keyCode is 73 # i
+      @ship.toggleInvincibility()
+
+  mousedown: (e) =>
+    return if @paused
+    point = [e.offsetX / @scale, @sizeY - e.offsetY / @scale]
+    for body in @quadtree.atPoint point
+      if Geometry.pointInsidePolygon point, body.vertices()
+        if body.ship
+          @explodeShip()
+        else
+          @fireMissile point, [0, 0], 1, true
+          return
+
+  update: (dt) ->
+    super dt
+    return if @paused
+    @updateStarfield @cameraDelta if Vec.magnitudeSquared(@cameraDelta) > 0
+    @updateDamage()
+    if @ship.invincible and Utils.random() < 0.1
+      @explosionAt @ship.position, size: 1, count: 1, color: @ship.lineColor
+
+  draw: =>
+    for stars in @starfield
+      @display.drawCircle point, size, color for [point, size, color] in stars
+    super()
+    @drawDamage()
 
   collisions: (contacts) ->
-    bumped = []
     for contact in contacts
-      if contact.from.ship
-        bumped.push contact.to
-      if contact.to.ship
-        bumped.push contact.from
+      if contact.from.ship or contact.to.ship
+        continue if contact.from.dead or contact.to.dead
 
-    for asteroid in _.uniq bumped
-      asteroid.toggleColor asteroid.originalColor
+        maxSepV = if @ship.invincible then -3 else -1.5
+
+        if contact.originalSepV > maxSepV
+          color = if contact.from.ship
+            contact.to.lineColor
+          else
+            contact.from.lineColor
+          @explosionAt contact.position, color: color, count: 5, size: 1
+          unless @ship.invincible
+            @damageFlash contact.originalSepV / maxSepV
+        else
+          @explodeShip() unless @ship.invincible
+          if contact.from.ship
+            @explodeAsteroid contact.to, contact.position
+          else
+            @explodeAsteroid contact.from, contact.position
 
   particleCollisions: (contacts) ->
     for contact in contacts
       body     = contact.body
       particle = contact.particle
 
-      continue if body.ship
+      continue if body.ship or contact.body.deleted
       contact.particle.alive = false
-      continue if contact.body.deleted
 
       if contact.particle.spawnMore
         num = Utils.randomInt(10, 25)
         for i in [0..num]
           direction = Rotation.fromAngle Utils.random() * Math.PI * 2
           velocity = Vec.scale direction, 2.5 + Utils.random() * 2.5
-          @fireMissile contact.particle.position, velocity
+          @fireMissile contact.particle.position, velocity, 3
 
-      @explosionAt particle.position
-      @removeBody contact.body
+      @explodeAsteroid contact.body, particle.position
       contact.body.deleted = true
-      added = @addShards particle.position, body.shatter particle.position
-      for shard in added
-        if Geometry.pointInsidePolygon particle.position, shard.vertices()
-          @removeBody shard
-          shards = shard.shatter particle.position, body
-          added = added.concat @addShards particle.position, shards
+
+  explodeAsteroid: (body, point) ->
+    body.dead = true
+    @removeBody body
+    @explosionAt point
+    added = @addShards point, body.shatter point
+    for shard in added
+      if Geometry.pointInsidePolygon point, shard.vertices()
+        @removeBody shard
+        shards = shard.shatter point, body
+        added = added.concat @addShards point, shards
+
+  explodeShip: ->
+    return if @ship.dead
+
+    @explosionAt @ship.position
+    @damageFlash 1
+    for vertex in @ship.vertices()
+      @explosionAt vertex
+    for shard in @ship.shards @ship.position
+      @bodyExplosion @ship.position, [0, 0], shard, @ship.color
+
+    @ship.dead = true
+    @track null
+    @removeBody @ship
+
+    setTimeout @restoreShip, 3000
+
+  restoreShip: =>
+    @ship.dead = false
+    @ship.orientation = Rotation.fromAngle Math.PI/2
+    @ship.position = @center()
+    @ship.velocity = [0, 0]
+    @ship.angularVelocity = 0
+
+    @explosionAt @ship.position, color: "#8CF", count: 100
+
+    @addBody @ship
+    @track @ship
 
   addShards: (position, shards) ->
     added = []
@@ -319,36 +410,43 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         @addBody shard
         added.push shard
       else
-        for point in shard.vertices()
-          inward = Vec.normalize Vec.sub shard.position, point
-          velocity = Vec.add shard.velocity, Vec.scale inward, Utils.random()
-
-          @addParticle new Particle
-            lifespan: 1 + Utils.random()
-            size: 2
-            position: shard.position
-            velocity: velocity
-            color: shard.color
-            fade: true
+        @bodyExplosion shard.position, shard.velocity, shard.vertices(), shard.color
     added
 
-  explosionAt: (position) ->
-    num = Utils.randomInt(25, 50)
+  explosionAt: (position, opts = {}) ->
+    color = opts.color # null as default is fine
+    count = opts.count or 50
+    size = opts.size or 2
+
+    num = Utils.randomInt(count / 2, count)
     for i in [0..num]
       direction = Rotation.fromAngle Utils.random() * Math.PI * 2
       speed = Utils.random() * 2
       green = Utils.randomInt(0, 255)
-      color = "rgba(255,#{green},32,1)"
+      c = color or "rgba(255,#{green},32,1)"
 
       @addParticle new Particle
         lifespan: Utils.random()
-        size: 2
+        size: size
         position: position
         velocity: Vec.scale direction, speed
+        color: c
+        fade: true
+
+  bodyExplosion: (position, velocity, vertices, color) ->
+    for point in vertices
+      inward = Vec.normalize Vec.sub position, point
+      v = Vec.add velocity, Vec.scale inward, Utils.random()
+
+      @addParticle new Particle
+        lifespan: 1 + Utils.random()
+        size: 2
+        position: position
+        velocity: v
         color: color
         fade: true
 
-  fireMissile: (position, velocity, size = 2, spawnMore = false) ->
+  fireMissile: (position, velocity, size, spawnMore = false) ->
     missile = new Particle
       lifespan: 1
       position: position
@@ -359,3 +457,35 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       collides: true
     missile.spawnMore = spawnMore
     @addParticle missile
+
+  createStarfield: ->
+    colors = ["#FDD", "#DFD", "#DDF"]
+    @starfield = for i in [0..3]
+      count = @sizeX * @scale * @sizeY * @scale / 10000
+      for i in [0..count]
+        x = Utils.random() * @sizeX
+        y = Utils.random() * @sizeY
+        size = if Utils.random() < 0.1 then 2 else 1
+        n = Utils.randomInt(0,10)
+        color = if n > 2 then "#FFF" else colors[n]
+        [[x, y], size, color]
+
+  updateStarfield: (delta) ->
+    n = (@starfield.length + 1) * 0.1
+    for stars, i in @starfield
+      delta = Vec.scale delta, n - 0.1 * i
+      for star in stars
+        star[0] = @constrainPosition Vec.add star[0], delta
+
+  damageFlash: (@damage) ->
+
+  updateDamage: ->
+    @damage = @damage - 0.01
+    @damage = 0 if @damage < 0.01
+
+  drawDamage: ->
+    if @damage > 0
+      alpha = Math.floor(@damage / 1.5 * 100) / 100
+      green = Math.floor (1 - @damage) * 255
+      color = "rgba(255,#{green},32,#{alpha})"
+      @display.fillBounds color, alpha

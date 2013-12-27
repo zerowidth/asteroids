@@ -18,7 +18,8 @@ window.PolygonalBody = class PolygonalBody
   density: null
 
   # what's it look like?
-  color: "#CCC"
+  color: "#666"
+  lineColor: "#CCC"
   renderWith: 'polygon'
 
   # simulation parameters
@@ -64,6 +65,7 @@ window.PolygonalBody = class PolygonalBody
     @density         = opts.density if opts.density
 
     @color           = opts.color if opts.color
+    @lineColor       = opts.lineColor if opts.lineColor
 
     @calculatePhysicalProperties()
 
@@ -225,3 +227,30 @@ window.PolygonalBody = class PolygonalBody
     @orientation    = Rotation.addAngle @orientation, rotationChange
     rotationChange
 
+  # return the decomposition of this polygon into smaller polygons, including a
+  # specified location.
+  shards: (location) ->
+    aabb = @aabb()
+    vertices = @vertices()
+    size = Math.max(aabb[1][0] - aabb[0][0], aabb[1][1] - aabb[0][1]) / 8
+    points = Utils.distributeRandomPoints aabb[0], aabb[1], size, [location]
+    points = _.filter points, (point) => Geometry.pointInsidePolygon point, vertices
+
+    sites = ({x: x, y: y} for [x, y] in points)
+    voronoi = new Voronoi()
+    bounds = {xl: aabb[0][0], xr: aabb[1][0], yt: aabb[0][1], yb: aabb[1][1]}
+    result = voronoi.compute sites, bounds
+
+    polygons = []
+    for cell in result.cells
+      polygon = []
+      for edge in cell.halfedges
+        a = edge.getStartpoint()
+        polygon.push [a.x, a.y]
+
+      polygon = Geometry.normalizeWinding polygon
+      polygon = Geometry.constrainPolygonToContainer polygon, vertices
+      continue unless polygon.length > 2
+      polygons.push polygon
+
+    polygons

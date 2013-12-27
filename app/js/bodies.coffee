@@ -37,8 +37,6 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
     super opts
 
-    @originalColor = @color
-
     # Update position and offsets to match the calculated centroid, unless both
     # the position and vertices have been explicitly set.
     @recalculateCentroid()
@@ -87,43 +85,18 @@ window.Asteroid = class Asteroid extends PolygonalBody
 
     points
 
-  toggleColor: (color) ->
-    if color is @color
-      @color = @originalColor
-    else
-      @color = color
-
   # shatter this asteroid into smaller asteroids, including a given location
   shatter: (location, reference = null) ->
     reference = reference or this
-    aabb = @aabb()
-    size = Math.max(aabb[1][0] - aabb[0][0], aabb[1][1] - aabb[0][1]) / 8
-    points = Utils.distributeRandomPoints aabb[0], aabb[1], size, [location]
-    points = _.filter points, (point) => Geometry.pointInsidePolygon point, @vertices()
-
-    sites = ({x: x, y: y} for [x, y] in points)
-    voronoi = new Voronoi()
-    bounds = {xl: aabb[0][0], xr: aabb[1][0], yt: aabb[0][1], yb: aabb[1][1]}
-    result = voronoi.compute sites, bounds
-
     shards = []
-    for cell in result.cells
-      polygon = []
-      for edge in cell.halfedges
-        a = edge.getStartpoint()
-        polygon.push [a.x, a.y]
-
-      polygon = Geometry.normalizeWinding polygon
-      polygon = Geometry.constrainPolygonToContainer polygon, @vertices()
-      continue unless polygon.length > 2
-
+    for polygon in @shards location
       shard = new Asteroid null,
         points: polygon
         density: @density
         color: @color
+        lineColor: @lineColor
       shard.velocity = Vec.add @velocity, reference.angularVelocityAt shard.position
       shards.push shard
-
     shards
 
 window.Ship = class Ship extends PolygonalBody
@@ -132,10 +105,38 @@ window.Ship = class Ship extends PolygonalBody
   # Maneuvering capabilities as a multiplier of mass.
   # Used to calculate accelerations from keyboard input.
   thrust: 1
-  turn: 1
+  turn: 8
 
   # How much of the flame is visible (drawing)
   flameLevel: 0
+  flameOffsets: ->
+    # tip of flame is from -1.5 to 0.25, map it onto that scale
+    x = - @flameLevel * 1.75 - 0.25
+    [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
+
+  # How much of the thruster is visible
+  thrusterLevel: 0
+  thrusterOffsets: ->
+    # tip of thrust is from +/-0.8 to +/- 0.2, give or take
+    side = if @thrusterLevel > 0 then 1 else -1
+    # y coords come from line equation of side of ship, y = -0.2857x + 0.357
+    y = 0.185 * side + 0.8 * @thrusterLevel
+    [ [0.8, 0.128 * side], [0.6, y], [0.4, 0.242 * side] ]
+
+  # Draw targeting line?
+  targeting: true
+
+  # Is this a ship?
+  ship: true
+
+  # Is the ship invincible?
+  invincible: false
+
+  # Colors:
+  colors:     [ "#468", "#8CF" ] # normal, invincible
+  lineColors: [ "#8CF", "#AEF" ]
+  color: "#468"
+  lineColor: "#8CF"
 
   # Public: Create a new Ship.
   #
@@ -181,21 +182,43 @@ window.Ship = class Ship extends PolygonalBody
 
     if keyboard.left
       @angularAccel = @turn
+      @thrusterLevel = -1
     else if keyboard.right
       @angularAccel = -@turn
+      @thrusterLevel = 1
     else
       @angularAccel = 0
+      @thrusterLevel = @thrusterLevel - @thrusterLevel * 0.25
+      @thrusterLevel = 0 if Math.abs(@thrusterLevel) < 0.05
+
+    @targeting = keyboard.shift
 
     super dt, keyboard
 
   draw: (display) ->
     if @flameLevel > 0
-      # tip of flame is from -1.5 to 0.25, map it onto that scale
-      x = - @flameLevel * 1.75 - 0.25
+      flame = @transform @flameOffsets(), @size
+      display.drawPolygons [flame], "#FB0", "#FB0", 0.25 + @flameLevel * 0.5
 
-      offsets = [ [-0.25, 0], [-0.375, 0.25], [x, 0], [-0.375, -0.25] ]
-      flame = @transform offsets, @size
+    if @thrusterLevel isnt 0
+      thruster = @transform @thrusterOffsets(), @size
+      alpha = 0.25 + Math.abs(@thrusterLevel) * 0.5
+      alpha = 1
+      display.drawPolygons [thruster], "#CCF", "#CCF", alpha
 
-      display.drawPolygons [flame], "#FB0", 0.25 + @flameLevel * 0.5
+    if @targeting
+      to = Vec.add @position, Vec.scale @orientation, 2.5
+      display.drawLine @position, to, 1, "#F33", 1
+      for segment in [0..9]
+        from = Vec.add @position, Vec.scale @orientation, 2.5 + (segment / 10) * 2.5
+        to   = Vec.add @position, Vec.scale @orientation, 2.5 + ((segment + 1) / 10) * 2.5
+        alpha = 1 - segment / 10
+        display.drawLine from, to, 1, "#F33", alpha
 
-    display.drawPolygons [@transform(@drawOffsets)], @color
+    display.drawPolygons [@transform(@drawOffsets)], @color, @lineColor
+
+  toggleInvincibility: ->
+    @invincible = not @invincible
+    index = if @invincible then 1 else 0
+    @color = @colors[index]
+    @lineColor = @lineColors[index]
