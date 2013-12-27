@@ -91,15 +91,11 @@ class Simulation
 
     @world.addBody a for a in @asteroids
     @ship = new Ship 0.3,
-      color: "#468"
-      lineColor: "#8CF"
       position: @world.center()
       angle: Math.PI/2
       density: 5
       thrust: 6
       turn: 5
-
-    @ship.ship = true
 
     # make the ship more resistant to spinning (helps with bounces)
     @ship.inverseMoment = @ship.inverseMoment / 4

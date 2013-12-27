@@ -126,6 +126,18 @@ window.Ship = class Ship extends PolygonalBody
   # Draw targeting line?
   targeting: true
 
+  # Is this a ship?
+  ship: true
+
+  # Is the ship invincible?
+  invincible: false
+
+  # Colors:
+  colors:     [ "#468", "#8CF" ] # normal, invincible
+  lineColors: [ "#8CF", "#AEF" ]
+  color: "#468"
+  lineColor: "#8CF"
+
   # Public: Create a new Ship.
   #
   # size - how big the ship is (give or take)
@@ -204,3 +216,9 @@ window.Ship = class Ship extends PolygonalBody
         display.drawLine from, to, 1, "#F33", alpha
 
     display.drawPolygons [@transform(@drawOffsets)], @color, @lineColor
+
+  toggleInvincibility: ->
+    @invincible = not @invincible
+    index = if @invincible then 1 else 0
+    @color = @colors[index]
+    @lineColor = @lineColors[index]

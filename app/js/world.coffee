@@ -296,6 +296,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
     if e.keyCode is 81 # q
       @explodeShip()
+    if e.keyCode is 73 # i
+      @ship.toggleInvincibility()
 
   mousedown: (e) =>
     return if @paused
@@ -313,6 +315,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     return if @paused
     @updateStarfield @cameraDelta if Vec.magnitudeSquared(@cameraDelta) > 0
     @updateDamage()
+    if @ship.invincible and Utils.random() < 0.1
+      @explosionAt @ship.position, size: 1, count: 1, color: @ship.lineColor
 
   draw: =>
     for stars in @starfield
@@ -323,18 +327,20 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
   collisions: (contacts) ->
     for contact in contacts
       if contact.from.ship or contact.to.ship
-        continue if contact.from.ship and contact.from.dead
-        continue if contact.to.ship and contact.to.dead
+        continue if contact.from.dead or contact.to.dead
 
-        if contact.originalSepV > -1.5
+        maxSepV = if @ship.invincible then -3 else -1.5
+
+        if contact.originalSepV > maxSepV
           color = if contact.from.ship
             contact.to.lineColor
           else
             contact.from.lineColor
           @explosionAt contact.position, color: color, count: 5, size: 1
-          @damageFlash -contact.originalSepV / 1.5
+          unless @ship.invincible
+            @damageFlash contact.originalSepV / maxSepV
         else
-          @explodeShip()
+          @explodeShip() unless @ship.invincible
           if contact.from.ship
             @explodeAsteroid contact.to, contact.position
           else
@@ -359,6 +365,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       contact.body.deleted = true
 
   explodeAsteroid: (body, point) ->
+    body.dead = true
     @removeBody body
     @explosionAt point
     added = @addShards point, body.shatter point
