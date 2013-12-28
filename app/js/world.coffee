@@ -5,8 +5,6 @@ window.World = class World
     @pauseEveryStep = opts.pauseEveryStep or false
     @pauseOnContact = opts.pauseOnContact or false
 
-    @keyboard = new KeyboardControls
-
     @bodies = []
     @particles = []
     @slow = false
@@ -14,17 +12,18 @@ window.World = class World
     @camera1 = @camera2 = @cameraDelta = [0, 0]
 
   keydown: (e) =>
-    @keyboard.keydown e
-    @slow = @keyboard.shift
+    if e.keyCode is 16 # shift
+      @slow = true
 
   keyup: (e) =>
-    @keyboard.keyup e
-    @slow = @keyboard.shift
+    if e.keyCode is 16 # shift
+      @slow = false
     if e.keyCode is 80 # p
       @paused = !@paused
 
-  mousedown: (e) =>
-  click: (e) =>
+  mousedown: (mouse) =>
+  mouseup: (mouse) =>
+  click: (mouse) =>
 
   debugSettings:
     drawMinAxis: false
@@ -63,10 +62,13 @@ window.World = class World
 
     @quadtree = new QuadTree [0, 0], [@sizeX, @sizeY]
 
+    @preIntegrate dt
+
     for body in @bodies
       body.prepare()
       body.resetDebug()
-      body.integrate dt, @keyboard
+      body.update dt
+      body.integrate dt
       @quadtree.insert body, body.aabb()
 
     for particle in @particles
@@ -127,6 +129,9 @@ window.World = class World
       @cameraDelta = delta
 
     @cleanup()
+
+  # Internal: hook for pre-integration updates
+  preIntegrate: (dt) ->
 
   # Internal: hook for post-integration updates
   postIntegrate: ->
@@ -279,48 +284,80 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @createStarfield()
     @reset()
 
+    @touchControls = new TouchControls @sizeX, @sizeY, @scale
+
   keydown: (e) ->
-    return if @paused
     super e
+    return if @paused or @ship.dead
 
-    return if @ship.dead
+    switch e.keyCode
+      when 16 # shift
+        @ship.controls.targeting = true
+      when 32 # space
+        @fireControls.fireMain = true
+      when 37 # left
+        @ship.controls.left = true
+      when 39 # right
+        @ship.controls.right = true
+      when 38 # up
+        @ship.controls.thrust = true
+      when 73 # i
+        @ship.toggleInvincibility()
+      when 81 # q
+        @explodeShip()
+      when 88 # x
+        @fireControls.fireBFG = true
+      when 90 # z
+        @fireControls.fireSpread = true
 
-    if e.keyCode is 32 or e.keyCode is 40 # space or down
-      v = Vec.scale @ship.orientation, 5
-      @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
-    if e.keyCode is 88 # x
-      v = Vec.scale @ship.orientation, 5
-      @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
-    if e.keyCode is 90 # z
-      for angle in [-Math.PI/8, -Math.PI/16, 0, Math.PI/16, Math.PI/8]
-        v = Rotation.add @ship.orientation, Rotation.fromAngle angle
-        v = Vec.scale v, 5
-        @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
-    if e.keyCode is 81 # q
-      @explodeShip()
-    if e.keyCode is 73 # i
-      @ship.toggleInvincibility()
+  keyup: (e) ->
+    super e
+    return if @paused or @ship.dead
+    switch e.keyCode
+      when 16 # shift
+        @ship.controls.targeting = false
+      when 32 # space
+        @fireControls.fireMain = false
+      when 37 # left
+        @ship.controls.left = false
+      when 39 # right
+        @ship.controls.right = false
+      when 38 # up
+        @ship.controls.thrust = false
+      when 88 # x
+        @fireControls.fireBFG = false
+      when 90 # z
+        @fireControls.fireSpread = false
 
-  mousedown: (e) =>
-    return if @paused
-    point = [e.offsetX / @scale, @sizeY - e.offsetY / @scale]
-    for body in @quadtree.atPoint point
-      if Geometry.pointInsidePolygon point, body.vertices()
-        if body.ship
-          @explodeShip()
-        else
-          @fireMissile point, [0, 0], 1, true
-          return
+  mousedown: (mouse) =>
+    return if @paused or @ship.dead
+    @touchControls.touchStart mouse
+    @updateShipFromTouch()
 
-  update: (dt) ->
-    super dt
+  mouseup: (mouse) ->
+    return if @paused or @ship.dead
+    @touchControls.touchEnd mouse
+    @updateShipFromTouch()
+
+  preIntegrate: (dt) ->
     return if @paused
     @updateStarfield @cameraDelta if Vec.magnitudeSquared(@cameraDelta) > 0
     @updateDamage()
 
+    @fireControls.update dt
+
     return if @ship.dead
+
     if @ship.invincible and Utils.random() < 0.1
       @explosionAt @ship.position, size: 1, count: 1, color: @ship.lineColor
+
+    # can only fire one weapon at a time, "best" first
+    if @fireControls.fireBFG
+      @fireBFG()
+    else if @fireControls.fireSpread
+      @fireSpread()
+    else if @fireControls.fireMain
+      @fireMain()
 
   draw: =>
     for stars in @starfield
@@ -401,6 +438,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @ship.position = @center()
     @ship.velocity = [0, 0]
     @ship.angularVelocity = 0
+    @ship.controls = new ShipControls
+    @fireControls = new FireControls
 
     @explosionAt @ship.position, color: "#8CF", count: 100
 
@@ -500,6 +539,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @removeAllParticles()
     @generateAsteroids()
     @createShip()
+    @fireControls = new FireControls
+    @touchControls = new TouchControls @sizeX, @sizeY, @scale
 
   generateAsteroids: ->
     avgSize = sizeDelta = 3
@@ -532,10 +573,34 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       angle: Math.PI/2
       density: 5
       thrust: 6
-      turn: 5
+      turn: 6
 
     # make the ship more resistant to spinning (helps with bounces)
     @ship.inverseMoment = @ship.inverseMoment / 4
 
     @addBody @ship
     @track @ship
+
+  # Update the ship/fire controls based on the state of touch/mouse
+  updateShipFromTouch: ->
+    @ship.controls.thrust  = @touchControls.regions.top
+    @ship.controls.left    = @touchControls.regions.left
+    @ship.controls.right   = @touchControls.regions.right
+    @fireControls.fireMain = @touchControls.regions.bottom
+
+  fireMain: ->
+    return unless @fireControls.fire "main"
+    v = Vec.scale @ship.orientation, 5
+    @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
+
+  fireBFG: ->
+    return unless @fireControls.fire "bfg"
+    v = Vec.scale @ship.orientation, 5
+    @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
+
+  fireSpread: ->
+    return unless @fireControls.fire "spread"
+    for angle in [-Math.PI/8, -Math.PI/16, 0, Math.PI/16, Math.PI/8]
+      v = Rotation.add @ship.orientation, Rotation.fromAngle angle
+      v = Vec.scale v, 5
+      @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3

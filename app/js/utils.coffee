@@ -1,31 +1,68 @@
-window.KeyboardControls = class KeyboardControls
-  up: false
-  down: false
+window.ShipControls = class ShipControls
+  thrust: false
   left: false
   right: false
-  keyup: (e) =>
-    @shift = e.shiftKey
-    switch e.keyCode
-      when 37 # left
-        @left = false
-      when 39 # right
-        @right = false
-      when 38 # up
-        @up = false
-      when 40 # down
-        @down = false
+  targeting: false
 
-  keydown: (e) =>
-    @shift = e.shiftKey
-    switch e.keyCode
-      when 37 # left
-        @left = true
-      when 39 # right
-        @right = true
-      when 38 # up
-        @up = true
-      when 40 # down
-        @down = true
+window.FireControls = class FireControls
+  timeouts:
+    default: 0.15
+    bfg: 0.5
+
+  fireMain: false
+  fireBFG: false
+  fireSpread: false
+
+  constructor: ->
+    @timers = {}
+
+  update: (dt) ->
+    @timers[key] = value - dt for key, value of @timers when value > 0
+
+  fire: (weapon) ->
+    if not @timers[weapon]? or @timers[weapon] <= 0
+      before = @timers[weapon] or 0 # account for time already served
+      @timers[weapon] = (@timeouts[weapon] or @timeouts["default"]) + before
+      true
+    else
+      false
+
+# Mouse/touch controls for mobile:
+# top third: fire
+# left/right halves of middle third: left/right
+# bottom third: thrust
+window.TouchControls = class TouchControls
+  constructor: (@width, @height, @scale) ->
+    @regions =
+      top: false
+      left: false
+      right: false
+      bottom: false
+
+  touchStart: (touch) ->
+    @set @mapRegion(touch), true
+
+  touchEnd: (touch) ->
+    if touch
+      @set @mapRegion(touch), false
+    else
+      @set key, false for key of @regions
+
+  set: (key, value) ->
+    @regions[key] = value
+
+  mapRegion: (touch) ->
+    x = touch.ox / @scale
+    y = @height - touch.oy / @scale
+    if y > 2 * @height / 3
+      "top"
+    else if y > @height / 3
+      if x < @width / 2
+        "left"
+      else
+        "right"
+    else
+      "bottom"
 
 window.Utils = Utils =
   drawStats: ->
