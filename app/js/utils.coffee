@@ -30,6 +30,43 @@ window.FireControls = class FireControls
     else
       false
 
+# Mouse/touch controls for mobile:
+# top third: fire
+# left/right halves of middle third: left/right
+# bottom third: thrust
+window.TouchControls = class TouchControls
+  constructor: (@width, @height, @scale) ->
+    @regions =
+      top: false
+      left: false
+      right: false
+      bottom: false
+
+  touchStart: (touch) ->
+    @set @mapRegion(touch), true
+
+  touchEnd: (touch) ->
+    if touch
+      @set @mapRegion(touch), false
+    else
+      @set key, false for key of @regions
+
+  set: (key, value) ->
+    @regions[key] = value
+
+  mapRegion: (touch) ->
+    x = touch.ox / @scale
+    y = @height - touch.oy / @scale
+    if y > 2 * @height / 3
+      "top"
+    else if y > @height / 3
+      if x < @width / 2
+        "left"
+      else
+        "right"
+    else
+      "bottom"
+
 window.Utils = Utils =
   drawStats: ->
     stats = new Stats()

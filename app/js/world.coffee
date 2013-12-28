@@ -284,6 +284,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @createStarfield()
     @reset()
 
+    @touchControls = new TouchControls @sizeX, @sizeY, @scale
+
   keydown: (e) ->
     super e
     return if @paused or @ship.dead
@@ -327,6 +329,15 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       when 90 # z
         @fireControls.fireSpread = false
 
+  mousedown: (mouse) =>
+    return if @paused or @ship.dead
+    @touchControls.touchStart mouse
+    @updateShipFromTouch()
+
+  mouseup: (mouse) ->
+    return if @paused or @ship.dead
+    @touchControls.touchEnd mouse
+    @updateShipFromTouch()
 
   preIntegrate: (dt) ->
     return if @paused
@@ -528,6 +539,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @removeAllParticles()
     @generateAsteroids()
     @createShip()
+    @fireControls = new FireControls
+    @touchControls = new TouchControls @sizeX, @sizeY, @scale
 
   generateAsteroids: ->
     avgSize = sizeDelta = 3
@@ -567,6 +580,13 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
     @addBody @ship
     @track @ship
+
+  # Update the ship/fire controls based on the state of touch/mouse
+  updateShipFromTouch: ->
+    @ship.controls.thrust  = @touchControls.regions.top
+    @ship.controls.left    = @touchControls.regions.left
+    @ship.controls.right   = @touchControls.regions.right
+    @fireControls.fireMain = @touchControls.regions.bottom
 
   fireMain: ->
     return unless @fireControls.fire "main"
