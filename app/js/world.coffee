@@ -560,7 +560,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       angle: Math.PI/2
       density: 5
       thrust: 6
-      turn: 5
+      turn: 6
 
     # make the ship more resistant to spinning (helps with bounces)
     @ship.inverseMoment = @ship.inverseMoment / 4

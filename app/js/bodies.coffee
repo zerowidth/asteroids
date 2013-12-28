@@ -103,9 +103,9 @@ window.Ship = class Ship extends PolygonalBody
   renderWith: 'custom'
 
   # Maneuvering capabilities as a multiplier of mass.
-  # Used to calculate accelerations from keyboard input.
+  # Used to calculate accelerations from control input.
   thrust: 1
-  turn: 8
+  turn: 1
 
   # How much of the flame is visible (drawing)
   flameLevel: 0
