@@ -23,8 +23,9 @@ window.World = class World
     if e.keyCode is 80 # p
       @paused = !@paused
 
-  mousedown: (e) =>
-  click: (e) =>
+  mousedown: (mouse) =>
+  mouseup: (mouse) =>
+  click: (mouse) =>
 
   debugSettings:
     drawMinAxis: false
@@ -301,16 +302,6 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     if e.keyCode is 73 # i
       @ship.toggleInvincibility()
 
-  mousedown: (e) =>
-    return if @paused
-    point = [e.offsetX / @scale, @sizeY - e.offsetY / @scale]
-    for body in @quadtree.atPoint point
-      if Geometry.pointInsidePolygon point, body.vertices()
-        if body.ship
-          @explodeShip()
-        else
-          @fireMissile point, [0, 0], 1, true
-          return
 
   update: (dt) ->
     super dt

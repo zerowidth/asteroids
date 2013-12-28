@@ -30,8 +30,9 @@ class Simulation
       draw:          => @world.draw()
       keydown: (e)   => @world.keydown e
       keyup: (e)     => @world.keyup e
-      mousedown: (e) => @world.mousedown e
-      click: (e)     => @world.click e
+      mousedown: (e) => @world.mousedown @ctx.mouse
+      mouseup:   (e) => @world.mouseup @ctx.mouse
+      click: (e)     => @world.click @ctx.mouse
 
     @setNewSeed() unless @seed
     @reset()
