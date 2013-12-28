@@ -5,26 +5,23 @@ window.ShipControls = class ShipControls
   targeting: false
 
 window.FireControls = class FireControls
-  keys: [ "main", "spread", "bfg" ]
   timeouts:
     default: 0.15
     bfg: 0.5
-  timers: {}
 
   fireMain: false
   fireBFG: false
   fireSpread: false
 
   constructor: ->
-    for key in @keys
-      @timers[key] = 0
+    @timers = {}
 
   update: (dt) ->
-    @timers[key] -= dt for key in @keys when @timers[key] > 0
+    @timers[key] = value - dt for key, value of @timers when value > 0
 
   fire: (weapon) ->
-    if @timers[weapon] <= 0
-      before = @timers[weapon] # account for time already served
+    if not @timers[weapon]? or @timers[weapon] <= 0
+      before = @timers[weapon] or 0 # account for time already served
       @timers[weapon] = (@timeouts[weapon] or @timeouts["default"]) + before
       true
     else
