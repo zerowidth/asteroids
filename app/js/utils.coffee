@@ -1,31 +1,8 @@
-window.KeyboardControls = class KeyboardControls
-  up: false
-  down: false
+window.ShipControls = class ShipControls
+  thrust: false
   left: false
   right: false
-  keyup: (e) =>
-    @shift = e.shiftKey
-    switch e.keyCode
-      when 37 # left
-        @left = false
-      when 39 # right
-        @right = false
-      when 38 # up
-        @up = false
-      when 40 # down
-        @down = false
-
-  keydown: (e) =>
-    @shift = e.shiftKey
-    switch e.keyCode
-      when 37 # left
-        @left = true
-      when 39 # right
-        @right = true
-      when 38 # up
-        @up = true
-      when 40 # down
-        @down = true
+  targeting: false
 
 window.Utils = Utils =
   drawStats: ->

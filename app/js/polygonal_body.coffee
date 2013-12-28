@@ -101,6 +101,10 @@ window.PolygonalBody = class PolygonalBody
 
     @cachedAABB = @debug.aabb = [[xMin, yMin], [xMax, yMax]]
 
+  # Hook for generic updates
+  update: (dt) ->
+
+  # Integrate the body's position &c.
   integrate: (dt, keyboard) ->
     return if dt <= 0
 

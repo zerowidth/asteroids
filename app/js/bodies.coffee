@@ -124,7 +124,7 @@ window.Ship = class Ship extends PolygonalBody
     [ [0.8, 0.128 * side], [0.6, y], [0.4, 0.242 * side] ]
 
   # Draw targeting line?
-  targeting: true
+  targeting: false
 
   # Is this a ship?
   ship: true
@@ -154,6 +154,8 @@ window.Ship = class Ship extends PolygonalBody
     @drawOffsets = (Vec.scale offset, @size for offset in @drawOffsets)
     @shapeOffsets = (Vec.scale offset, @size for offset in @shapeOffsets)
 
+    @controls = new ShipControls
+
     super opts
 
     @recalculateCentroid()
@@ -168,22 +170,19 @@ window.Ship = class Ship extends PolygonalBody
   # the vertex at the front of the ship
   tip: -> @vertices()[1]
 
-  integrate: (dt, keyboard) ->
-    if keyboard.up
+  update: (dt) ->
+    if @controls.thrust
       @flameLevel = @flameLevel + (1 - @flameLevel) * 0.75
+      @acceleration = Vec.scale @orientation, @thrust
     else
       @flameLevel = @flameLevel - @flameLevel * 0.25
       @flameLevel = 0 if @flameLevel < 0.05
-
-    if keyboard.up
-      @acceleration = Vec.scale @orientation, @thrust
-    else
       @acceleration = [0, 0]
 
-    if keyboard.left
+    if @controls.left
       @angularAccel = @turn
       @thrusterLevel = -1
-    else if keyboard.right
+    else if @controls.right
       @angularAccel = -@turn
       @thrusterLevel = 1
     else
@@ -191,9 +190,7 @@ window.Ship = class Ship extends PolygonalBody
       @thrusterLevel = @thrusterLevel - @thrusterLevel * 0.25
       @thrusterLevel = 0 if Math.abs(@thrusterLevel) < 0.05
 
-    @targeting = keyboard.shift
-
-    super dt, keyboard
+    @targeting = @controls.targeting
 
   draw: (display) ->
     if @flameLevel > 0
