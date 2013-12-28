@@ -62,6 +62,8 @@ window.World = class World
 
     @quadtree = new QuadTree [0, 0], [@sizeX, @sizeY]
 
+    @preIntegrate dt
+
     for body in @bodies
       body.prepare()
       body.resetDebug()
@@ -127,6 +129,9 @@ window.World = class World
       @cameraDelta = delta
 
     @cleanup()
+
+  # Internal: hook for pre-integration updates
+  preIntegrate: (dt) ->
 
   # Internal: hook for post-integration updates
   postIntegrate: ->
@@ -286,27 +291,22 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     switch e.keyCode
       when 16 # shift
         @ship.controls.targeting = true
+      when 32 # space
+        @fireControls.fireMain = true
       when 37 # left
         @ship.controls.left = true
       when 39 # right
         @ship.controls.right = true
       when 38 # up
         @ship.controls.thrust = true
-      when 32, 40 # space, down
-        v = Vec.scale @ship.orientation, 5
-        @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
       when 73 # i
         @ship.toggleInvincibility()
       when 81 # q
         @explodeShip()
       when 88 # x
-        v = Vec.scale @ship.orientation, 5
-        @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
+        @fireControls.fireBFG = true
       when 90 # z
-        for angle in [-Math.PI/8, -Math.PI/16, 0, Math.PI/16, Math.PI/8]
-          v = Rotation.add @ship.orientation, Rotation.fromAngle angle
-          v = Vec.scale v, 5
-          @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
+        @fireControls.fireSpread = true
 
   keyup: (e) ->
     super e
@@ -314,23 +314,39 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     switch e.keyCode
       when 16 # shift
         @ship.controls.targeting = false
+      when 32 # space
+        @fireControls.fireMain = false
       when 37 # left
         @ship.controls.left = false
       when 39 # right
         @ship.controls.right = false
       when 38 # up
         @ship.controls.thrust = false
+      when 88 # x
+        @fireControls.fireBFG = false
+      when 90 # z
+        @fireControls.fireSpread = false
 
 
-  update: (dt) ->
-    super dt
+  preIntegrate: (dt) ->
     return if @paused
     @updateStarfield @cameraDelta if Vec.magnitudeSquared(@cameraDelta) > 0
     @updateDamage()
 
+    @fireControls.update dt
+
     return if @ship.dead
+
     if @ship.invincible and Utils.random() < 0.1
       @explosionAt @ship.position, size: 1, count: 1, color: @ship.lineColor
+
+    # can only fire one weapon at a time, "best" first
+    if @fireControls.fireBFG
+      @fireBFG()
+    else if @fireControls.fireSpread
+      @fireSpread()
+    else if @fireControls.fireMain
+      @fireMain()
 
   draw: =>
     for stars in @starfield
@@ -412,6 +428,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @ship.velocity = [0, 0]
     @ship.angularVelocity = 0
     @ship.controls = new ShipControls
+    @fireControls = new FireControls
 
     @explosionAt @ship.position, color: "#8CF", count: 100
 
@@ -550,3 +567,20 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
     @addBody @ship
     @track @ship
+
+  fireMain: ->
+    return unless @fireControls.fire "main"
+    v = Vec.scale @ship.orientation, 5
+    @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
+
+  fireBFG: ->
+    return unless @fireControls.fire "bfg"
+    v = Vec.scale @ship.orientation, 5
+    @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
+
+  fireSpread: ->
+    return unless @fireControls.fire "spread"
+    for angle in [-Math.PI/8, -Math.PI/16, 0, Math.PI/16, Math.PI/8]
+      v = Rotation.add @ship.orientation, Rotation.fromAngle angle
+      v = Vec.scale v, 5
+      @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3

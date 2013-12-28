@@ -4,6 +4,32 @@ window.ShipControls = class ShipControls
   right: false
   targeting: false
 
+window.FireControls = class FireControls
+  keys: [ "main", "spread", "bfg" ]
+  timeouts:
+    default: 0.15
+    bfg: 0.5
+  timers: {}
+
+  fireMain: false
+  fireBFG: false
+  fireSpread: false
+
+  constructor: ->
+    for key in @keys
+      @timers[key] = 0
+
+  update: (dt) ->
+    @timers[key] -= dt for key in @keys when @timers[key] > 0
+
+  fire: (weapon) ->
+    if @timers[weapon] <= 0
+      before = @timers[weapon] # account for time already served
+      @timers[weapon] = (@timeouts[weapon] or @timeouts["default"]) + before
+      true
+    else
+      false
+
 window.Utils = Utils =
   drawStats: ->
     stats = new Stats()
