@@ -252,9 +252,10 @@ window.PolygonalBody = class PolygonalBody
         a = edge.getStartpoint()
         polygon.push [a.x, a.y]
 
+      continue unless polygon.length > 2 # preflight check
       polygon = Geometry.normalizeWinding polygon
       polygon = Geometry.constrainPolygonToContainer polygon, vertices
-      continue unless polygon.length > 2
+      continue unless polygon.length > 2 # postflight check
       polygons.push polygon
 
     polygons
