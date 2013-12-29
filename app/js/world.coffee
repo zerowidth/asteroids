@@ -301,6 +301,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         @ship.controls.right = true
       when 38 # up
         @ship.controls.thrust = true
+      when 65 # a
+        @fireControls.fireAsteroid = true
       when 73 # i
         @ship.toggleInvincibility()
       when 81 # q
@@ -324,6 +326,8 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         @ship.controls.right = false
       when 38 # up
         @ship.controls.thrust = false
+      when 65 # a
+        @fireControls.fireAsteroid = false
       when 88 # x
         @fireControls.fireBFG = false
       when 90 # z
@@ -351,8 +355,13 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     if @ship.invincible and Utils.random() < 0.1
       @explosionAt @ship.position, size: 1, count: 1, color: @ship.lineColor
 
+    if Vec.magnitudeSquared(@ship.velocity) > 900 # speed limit 30!
+      @fireAsteroid()
+
     # can only fire one weapon at a time, "best" first
-    if @fireControls.fireBFG
+    if @fireControls.fireAsteroid
+      @fireAsteroid()
+    else if @fireControls.fireBFG
       @fireBFG()
     else if @fireControls.fireSpread
       @fireSpread()
@@ -544,28 +553,32 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
   generateAsteroids: ->
     avgSize = sizeDelta = 3
-    deltaVelocity = 3
-    deltaTheta = Math.PI
 
     searchRadius = avgSize - sizeDelta / 2.5
     for pos, i in Utils.distributeRandomPoints [0, 0], [@sizeX, @sizeY], searchRadius, [@center()]
       continue if i is 0
       size = avgSize + Utils.random(sizeDelta) - sizeDelta/2
 
-      density = Utils.randomInt(0,4)
-      lineColor = Math.floor(192 - density * 32)
-      color = Math.floor(96 - density * 16)
+      @generateAsteroid pos, size
 
-      @addBody new Asteroid size,
-        position: pos
-        velocity: [
-          Utils.random(deltaVelocity) - deltaVelocity / 2,
-          Utils.random(deltaVelocity) - deltaVelocity / 2
-        ]
-        angularVelocity: Utils.random(deltaTheta) - deltaTheta / 2
-        density: 10 + 5 * density
-        color: "rgba(#{color},#{color},#{color},1)"
-        lineColor: "rgba(#{lineColor},#{lineColor},#{lineColor},1)"
+  generateAsteroid: (position, size) ->
+    deltaVelocity = 3
+    deltaTheta = Math.PI
+
+    density = Utils.randomInt(0,4)
+    lineColor = Math.floor(192 - density * 32)
+    color = Math.floor(96 - density * 16)
+
+    @addBody new Asteroid size,
+      position: position
+      velocity: [
+        Utils.random(deltaVelocity) - deltaVelocity / 2,
+        Utils.random(deltaVelocity) - deltaVelocity / 2
+      ]
+      angularVelocity: Utils.random(deltaTheta) - deltaTheta / 2
+      density: 10 + 5 * density
+      color: "rgba(#{color},#{color},#{color},1)"
+      lineColor: "rgba(#{lineColor},#{lineColor},#{lineColor},1)"
 
   createShip: ->
     @ship = new Ship 0.3,
@@ -604,3 +617,10 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       v = Rotation.add @ship.orientation, Rotation.fromAngle angle
       v = Vec.scale v, 5
       @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
+
+  fireAsteroid: ->
+    return unless @fireControls.fire "asteroid"
+    console.log "firing asteroid"
+    position = [Utils.random(@sizeX), Utils.random(@sizeY)]
+    size = 1 + Utils.random(4)
+    @generateAsteroid position, size

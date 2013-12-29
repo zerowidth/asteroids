@@ -8,6 +8,7 @@ window.FireControls = class FireControls
   timeouts:
     default: 0.15
     bfg: 0.5
+    asteroid: 0.5
 
   fireMain: false
   fireBFG: false
