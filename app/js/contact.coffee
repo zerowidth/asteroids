@@ -87,7 +87,7 @@ window.Contact = class Contact
     return if totalInertia <= 0 # nobody's goin' nowhere
 
     # how far per inertia should each body move?
-    moveRatio = @depth / totalInertia
+    moveRatio = @depth / totalInertia / 2
 
     [linearMove, angularMove] = @calculateMove @from, moveRatio, @offset
     linearChange   = @from.changePosition @normal, linearMove
