@@ -581,7 +581,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
     density = Utils.randomInt(0,4)
     lineColor = Math.floor(192 - density * 32)
-    color = Math.floor(96 - density * 16)
+    color = Math.floor(54 - density * 9)
 
     @addBody new Asteroid size,
       position: position
