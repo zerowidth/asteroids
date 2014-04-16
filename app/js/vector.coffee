@@ -21,7 +21,7 @@ Vec =
 
   # cross product in 2d is a scalar:
   crossProduct: ([x0, y0], [x1, y1]) ->
-    x0*y1 - y0*x1
+    x0*y1 - x1*y0
 
   # "cross product" yields a non-normalized perpendicular vector
   perpendicular: ([x, y]) ->

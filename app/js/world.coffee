@@ -620,7 +620,6 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
   fireAsteroid: ->
     return unless @fireControls.fire "asteroid"
-    console.log "firing asteroid"
     position = [Utils.random(@sizeX), Utils.random(@sizeY)]
     size = 50 + Utils.random(200)
     @generateAsteroid position, size

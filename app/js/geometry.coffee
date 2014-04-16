@@ -172,7 +172,8 @@ window.Geometry = Geometry =
       vertices = clipped
     @coalesceVertices vertices # precision errors lead to extra vertices, sometimes
 
-  # intersection point of a segment from A to B to with the line defined by a point and a normal.
+  # intersection point of a segment from A to B to with the line defined by a
+  # point and a normal.
   lineSegmentIntersection: (vertexA, vertexB, point, normal) ->
     direction = Vec.sub vertexB, vertexA
     distance  = Vec.dotProduct(Vec.sub(point, vertexA), normal) / Vec.dotProduct(direction, normal)
