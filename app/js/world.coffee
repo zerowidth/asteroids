@@ -456,9 +456,23 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @track @ship
 
   addShards: (position, shards) ->
-    added = []
+    added       = []
+    blastRadius = 100
+    power       = 6000
+
     for shard in shards
       if shard.area > @ship.area
+
+        direction = Vec.sub shard.position, position
+        distance  = Vec.magnitudeSquared direction
+        normal    = Vec.normalize direction
+        effect    = (distance / blastRadius)
+
+        if effect > 0
+          impulse = Vec.scale normal, power * effect
+          before = shard.velocity
+          shard.applyImpulse impulse, shard.position
+
         @addBody shard
         added.push shard
       else
