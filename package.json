@@ -6,8 +6,9 @@
   "author": {
     "name": "Nathan Witmer"
   },
-  "dependencies": {
-    "lineman": "~0.14.0"
+  "devDependencies": {
+    "lineman": "~0.29.0",
+    "lineman-less": "0.0.1"
   },
   "engines": {
     "node": "~>0.10.5",
