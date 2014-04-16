@@ -33,7 +33,7 @@ window.FireControls = class FireControls
 # left/right halves of middle third: left/right
 # bottom third: thrust
 window.TouchControls = class TouchControls
-  constructor: (@width, @height, @scale) ->
+  constructor: (@width, @height) ->
     @regions =
       top: false
       left: false
@@ -53,8 +53,8 @@ window.TouchControls = class TouchControls
     @regions[key] = value
 
   mapRegion: (touch) ->
-    x = touch.ox / @scale
-    y = @height - touch.oy / @scale
+    x = touch.ox
+    y = @height - touch.oy
     if y > 2 * @height / 3
       "top"
     else if y > @height / 3

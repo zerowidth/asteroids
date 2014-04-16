@@ -205,7 +205,7 @@ window.World = class World
 
 window.WrappedWorld = class WrappedWorld extends World
 
-  constructor: (@display, @sizeX, @sizeY, @scale, opts={}) ->
+  constructor: (@display, @sizeX, @sizeY, opts={}) ->
     super @display, opts
 
   addBody: (body) -> super @constrain body
@@ -284,7 +284,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @createStarfield()
     @reset()
 
-    @touchControls = new TouchControls @sizeX, @sizeY, @scale
+    @touchControls = new TouchControls @sizeX, @sizeY
 
   keydown: (e) ->
     super e
@@ -355,7 +355,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     if @ship.invincible and Utils.random() < 0.1
       @explosionAt @ship.position, size: 1, count: 1, color: @ship.lineColor
 
-    if Vec.magnitudeSquared(@ship.velocity) > 900 # speed limit 30!
+    if Vec.magnitudeSquared(@ship.velocity) > 2250000 # speed limit 1500!
       @fireAsteroid()
 
     # can only fire one weapon at a time, "best" first
@@ -379,7 +379,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       if contact.from.ship or contact.to.ship
         continue if contact.from.dead or contact.to.dead
 
-        maxSepV = if @ship.invincible then -3 else -1.5
+        maxSepV = if @ship.invincible then -150 else -75
 
         if contact.originalSepV > maxSepV
           color = if contact.from.ship
@@ -408,7 +408,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
         num = Utils.randomInt(10, 25)
         for i in [0..num]
           direction = Rotation.fromAngle Utils.random() * Math.PI * 2
-          velocity = Vec.scale direction, 2.5 + Utils.random() * 2.5
+          velocity = Vec.scale direction, Utils.random() * 125
           @fireMissile contact.particle.position, velocity, 3
 
       @explodeAsteroid contact.body, particle.position
@@ -473,7 +473,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     num = Utils.randomInt(count / 2, count)
     for i in [0..num]
       direction = Rotation.fromAngle Utils.random() * Math.PI * 2
-      speed = Utils.random() * 2
+      speed = Utils.random() * 100
       green = Utils.randomInt(0, 255)
       c = color or "rgba(255,#{green},32,1)"
 
@@ -488,7 +488,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
   bodyExplosion: (position, velocity, vertices, color) ->
     for point in vertices
       inward = Vec.normalize Vec.sub position, point
-      v = Vec.add velocity, Vec.scale inward, Utils.random()
+      v = Vec.add velocity, Vec.scale inward, Utils.random() * 50
 
       @addParticle new Particle
         lifespan: 1 + Utils.random()
@@ -513,7 +513,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
   createStarfield: ->
     colors = ["#FDD", "#DFD", "#DDF"]
     @starfield = for i in [0..3]
-      count = @sizeX * @scale * @sizeY * @scale / 10000
+      count = @sizeX * @sizeY / 10000
       for i in [0..count]
         x = Utils.random() * @sizeX
         y = Utils.random() * @sizeY
@@ -549,10 +549,10 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
     @generateAsteroids()
     @createShip()
     @fireControls = new FireControls
-    @touchControls = new TouchControls @sizeX, @sizeY, @scale
+    @touchControls = new TouchControls @sizeX, @sizeY
 
   generateAsteroids: ->
-    avgSize = sizeDelta = 3
+    avgSize = sizeDelta = 150
 
     searchRadius = avgSize - sizeDelta / 2.5
     for pos, i in Utils.distributeRandomPoints [0, 0], [@sizeX, @sizeY], searchRadius, [@center()]
@@ -562,7 +562,7 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       @generateAsteroid pos, size
 
   generateAsteroid: (position, size) ->
-    deltaVelocity = 3
+    deltaVelocity = 150
     deltaTheta = Math.PI
 
     density = Utils.randomInt(0,4)
@@ -581,11 +581,11 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
       lineColor: "rgba(#{lineColor},#{lineColor},#{lineColor},1)"
 
   createShip: ->
-    @ship = new Ship 0.3,
+    @ship = new Ship 15,
       position: @center()
       angle: Math.PI/2
       density: 5
-      thrust: 6
+      thrust: 300
       turn: 6
 
     # make the ship more resistant to spinning (helps with bounces)
@@ -603,24 +603,24 @@ window.AsteroidWorld = class AsteroidWorld extends WrappedWorld
 
   fireMain: ->
     return unless @fireControls.fire "main"
-    v = Vec.scale @ship.orientation, 5
+    v = Vec.scale @ship.orientation, 250
     @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
 
   fireBFG: ->
     return unless @fireControls.fire "bfg"
-    v = Vec.scale @ship.orientation, 5
+    v = Vec.scale @ship.orientation, 250
     @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 5, true
 
   fireSpread: ->
     return unless @fireControls.fire "spread"
     for angle in [-Math.PI/8, -Math.PI/16, 0, Math.PI/16, Math.PI/8]
       v = Rotation.add @ship.orientation, Rotation.fromAngle angle
-      v = Vec.scale v, 5
+      v = Vec.scale v, 250
       @fireMissile @ship.tip(), Vec.add(@ship.velocity, v), 3
 
   fireAsteroid: ->
     return unless @fireControls.fire "asteroid"
     console.log "firing asteroid"
     position = [Utils.random(@sizeX), Utils.random(@sizeY)]
-    size = 1 + Utils.random(4)
+    size = 50 + Utils.random(200)
     @generateAsteroid position, size

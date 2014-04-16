@@ -1,8 +1,7 @@
 window.Display = class Display
   # ctx    - the canvas context
   # center - [x, y] (world) center of display
-  # scale  - pixels per unit (world)
-  constructor: (@ctx, @center, @scale) ->
+  constructor: (@ctx, @center) ->
 
   transform: (points) ->
     dx = @ctx.width/2
@@ -10,8 +9,8 @@ window.Display = class Display
     for [x, y] in points
       # TODO constrain to integers? | 0, etc.?
       [
-        (x - @center[0]) * @scale + dx
-        (-y + @center[1]) * @scale + dy
+        (x - @center[0]) + dx
+        (-y + @center[1]) + dy
       ]
 
   drawPolygon: (vertices, color, alpha = 0.5) ->
@@ -61,16 +60,15 @@ window.WrappedDisplay = class WrappedDisplay extends Display
   # center - [x, y] (world) center of display
   # sizeX  - size of display (world, not pixels)
   # sizeY  - size of display (world, not pixels)
-  # scale  - pixels per meter
-  constructor: (@ctx, @center, @sizeX, @sizeY, @scale) ->
+  constructor: (@ctx, @center, @sizeX, @sizeY) ->
 
   # TODO constrain to integers? | 0, etc.?
   transform: (points, offset = [0, 0]) ->
     dx = @ctx.width/2
     dy = @ctx.height/2
     for [x, y] in points
-      [ ( x - @center[0] + offset[0] * @sizeX) * @scale + dx
-        (-y + @center[1] + offset[1] * @sizeY) * @scale + dy ]
+      [ ( x - @center[0] + offset[0] * @sizeX) + dx
+        (-y + @center[1] + offset[1] * @sizeY) + dy ]
 
   drawPolygons: (polygons, color, lineColor, alpha = 1) ->
     @ctx.beginPath()

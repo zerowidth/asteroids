@@ -4,26 +4,28 @@ class Simulation
   seed: null
 
   constructor: ->
-    scale  = 50
-
     windowWidth  = window.innerWidth
     windowHeight = window.innerHeight
 
-    @width  = Math.floor(windowWidth  / scale) - 1
-    @height = Math.floor(windowHeight / scale) - 1
-    $("#container").width(@width * scale).height(@height * scale)
-    $("#header").width(@width * scale)
+    # header is 31 high, plus 10 padding on sides
+    @width  = windowWidth - 20
+    @height = windowHeight - 41
+    # @width = Math.min(@width, @height)
+    # @height = Math.min(@width, @height)
+
+    $("#container").width(@width).height(@height)
+    $("#header").width(@width)
 
     @ctx = Sketch.create
       element: document.getElementById "display"
       container: document.getElementById "container"
       fullscreen: false
-      width: @width * scale
-      height: @height * scale
+      width: @width
+      height: @height
       # retina: true
 
-    @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height, scale
-    @world = new AsteroidWorld @display, @width, @height, scale
+    @display = new WrappedDisplay @ctx, [@width/2, @height/2], @width, @height
+    @world = new AsteroidWorld @display, @width, @height, 1
 
     _.extend @ctx,
       update:        => @world.update @ctx.dt

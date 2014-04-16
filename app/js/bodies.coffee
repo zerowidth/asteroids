@@ -204,11 +204,11 @@ window.Ship = class Ship extends PolygonalBody
       display.drawPolygons [thruster], "#CCF", "#CCF", alpha
 
     if @targeting
-      to = Vec.add @position, Vec.scale @orientation, 2.5
+      to = Vec.add @position, Vec.scale @orientation, 125
       display.drawLine @position, to, 1, "#F33", 1
       for segment in [0..9]
-        from = Vec.add @position, Vec.scale @orientation, 2.5 + (segment / 10) * 2.5
-        to   = Vec.add @position, Vec.scale @orientation, 2.5 + ((segment + 1) / 10) * 2.5
+        from = Vec.add @position, Vec.scale @orientation, 125 + (segment / 10) * 125
+        to   = Vec.add @position, Vec.scale @orientation, 125 + ((segment + 1) / 10) * 125
         alpha = 1 - segment / 10
         display.drawLine from, to, 1, "#F33", alpha
 
