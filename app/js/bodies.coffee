@@ -133,9 +133,9 @@ window.Ship = class Ship extends PolygonalBody
   invincible: false
 
   # Colors:
-  colors:     [ "#468", "#8CF" ] # normal, invincible
+  colors:     [ "#246", "#468" ] # normal, invincible
   lineColors: [ "#8CF", "#AEF" ]
-  color: "#468"
+  color: "#246"
   lineColor: "#8CF"
 
   # Public: Create a new Ship.
