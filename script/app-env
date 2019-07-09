@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+[ -f /etc/inside-container ] && exec "$@"
+
+if [ -z "$(docker images -q asteroids)" ]; then
+  echo "asteroids docker image not found, bootstrapping..."
+  script/bootstrap
+fi
+
+appdir=$(cd "$(dirname "$0")/.." && pwd)
+exec docker run --init -t -i -p 8000:8000 --rm -v "$appdir:/asteroids" asteroids "$@"
