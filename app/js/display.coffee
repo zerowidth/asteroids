@@ -7,10 +7,9 @@ window.Display = class Display
     dx = @ctx.width/2
     dy = @ctx.height/2
     for [x, y] in points
-      # TODO constrain to integers? | 0, etc.?
       [
-        (x - @center[0]) + dx
-        (-y + @center[1]) + dy
+        Math.round((x - @center[0]) + dx)
+        Math.round((-y + @center[1]) + dy)
       ]
 
   drawPolygon: (vertices, color, alpha = 0.5) ->
@@ -62,13 +61,12 @@ window.WrappedDisplay = class WrappedDisplay extends Display
   # sizeY  - size of display (world, not pixels)
   constructor: (@ctx, @center, @sizeX, @sizeY) ->
 
-  # TODO constrain to integers? | 0, etc.?
   transform: (points, offset = [0, 0]) ->
     dx = @ctx.width/2
     dy = @ctx.height/2
     for [x, y] in points
-      [ ( x - @center[0] + offset[0] * @sizeX) + dx
-        (-y + @center[1] + offset[1] * @sizeY) + dy ]
+      [ Math.round(( x - @center[0] + offset[0] * @sizeX) + dx)
+        Math.round((-y + @center[1] + offset[1] * @sizeY) + dy) ]
 
   drawPolygons: (polygons, color, lineColor, alpha = 1) ->
     @ctx.beginPath()
