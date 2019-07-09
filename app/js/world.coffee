@@ -57,6 +57,9 @@ window.World = class World
   update: (dt) ->
     return if @paused
 
+    # clamp dt to 15fps minimum
+    dt = 66 if dt > 66
+
     dt = dt / 1000 * @speedFactor
     dt = dt / 5 if @slow
 

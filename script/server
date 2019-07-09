@@ -1,3 +1,2 @@
 #!/bin/sh
-
-node_modules/.bin/lineman run
+script/app-env node_modules/.bin/lineman run

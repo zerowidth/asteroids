@@ -8,7 +8,8 @@
   },
   "devDependencies": {
     "lineman": "~0.29.0",
-    "lineman-less": "0.0.1"
+    "lineman-less": "0.0.1",
+    "coffee-script": "~1.12.6"
   },
   "engines": {
     "node": "~>0.10.5",
