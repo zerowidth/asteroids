@@ -1,6 +1,5 @@
 window.QuadTree = class QuadTree
   MAX_OBJECTS: 4
-  MAX_DEPTH: 5
 
   nodes: null # if present: northeast, northwest, southwest, southeast
 
@@ -14,7 +13,7 @@ window.QuadTree = class QuadTree
     [[left, bottom], [right, top]] = boundingBox
     return if right < @left or left >= @right or top < @bottom or bottom >= @top
 
-    if (@objects.length < @MAX_OBJECTS and not @nodes) or @depth is @MAX_DEPTH
+    if (@objects.length <= @MAX_OBJECTS and not @nodes)
       @objects.push [object, boundingBox]
       return
 
